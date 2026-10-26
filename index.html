@@ -1,0 +1,1468 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#141112">
+<title>Academia Drive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lobster&family=Open+Sans:wght@400;600;700&family=Roboto+Slab:wght@700;800&display=swap">
+<style>
+/* Layout: quadro de cardápio de diner — fundo carvão, placas vermelhas com letreiro script, títulos slab mostarda, faixa xadrez */
+:root{
+  --board:#1d191a; --panel:#282324; --panel-2:#332d2e; --line:#463d3e;
+  --red:#981e28; --red-hi:#c42a33; --mustard:#f6a42f; --mustard-deep:#d7891a;
+  --cream:#f4ead8; --muted:#bcae9e; --ink:#141112;
+  --ok:#43b88c; --bad:#e5574f;
+  --opt-a:#c42a33; --opt-b:#f6a42f; --opt-c:#1f9a92; --opt-d:#e8dbc2;
+  --font-script:'Lobster','Brush Script MT',cursive;
+  --font-slab:'Roboto Slab',Rockwell,'Courier New',Georgia,serif;
+  --font-body:'Open Sans','Segoe UI',system-ui,sans-serif;
+  --r:10px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--board);color:var(--cream);margin:0}
+body{font-family:var(--font-body);font-size:15px;line-height:1.5;min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px}
+.num{font-variant-numeric:tabular-nums}
+
+/* faixa xadrez do cardápio */
+.checker{height:20px;background:repeating-conic-gradient(var(--mustard) 0 25%,var(--ink) 0 50%) 0 0/20px 20px}
+.checker.fino{height:10px;background-size:10px 10px}
+
+/* placa de seção (como "Sanduíches" no cardápio) */
+.plate{display:inline-block;background:var(--red);padding:.05em .55em .18em;border-radius:3px;
+  font-family:var(--font-script);font-weight:400;color:var(--mustard);letter-spacing:.01em;
+  -webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink);line-height:1.15}
+.plate.lg{font-size:clamp(30px,5vw,44px)}
+.plate.md{font-size:clamp(24px,3.6vw,32px);-webkit-text-stroke:4px var(--ink)}
+.sec-head{display:flex;align-items:center;gap:14px;margin:34px 0 16px}
+.sec-head::after{content:"";flex:1;height:2px;background:var(--mustard);opacity:.75}
+.eyebrow{font-family:var(--font-slab);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mustard)}
+
+/* demo */
+.demo-bar{background:var(--mustard);color:var(--ink);font-size:13px;padding:6px 16px;text-align:center;font-weight:600}
+.demo-bar code{background:rgba(0,0,0,.12);padding:0 5px;border-radius:4px;font-family:var(--font-slab)}
+
+/* topo */
+.topbar{background:var(--ink);border-bottom:2px solid var(--red)}
+.topbar .wrap{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left}
+.brand-logo{height:46px;width:auto;display:none}
+.tem-logo .brand-logo{display:block}
+.wm{display:flex;flex-direction:column;line-height:1}
+.wm-script{font-family:var(--font-script);font-size:28px;color:var(--cream);text-shadow:2px 2px 0 var(--red)}
+.tem-logo .topbar .wm-script{display:none}
+.wm-sub{font-family:var(--font-slab);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--mustard);margin-top:4px}
+.topbar .grow{flex:1}
+.who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);min-width:0}
+.who b{color:var(--cream);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:999px;background:var(--panel-2);color:var(--muted);white-space:nowrap}
+.chip.red{background:var(--red);color:var(--cream)}
+.chip.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:#ff8d86}
+.chip.gold{background:color-mix(in srgb,var(--mustard) 20%,transparent);color:var(--mustard)}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;padding:11px 18px;
+  font-family:var(--font-slab);font-weight:700;font-size:15px;letter-spacing:.01em;transition:transform .12s,filter .12s,background .12s;text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--mustard);color:var(--ink);box-shadow:0 3px 0 var(--mustard-deep)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-red{background:var(--red-hi);color:var(--cream);box-shadow:0 3px 0 #6e141c}
+.btn-ghost{background:transparent;color:var(--cream);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--mustard);color:var(--mustard)}
+.btn-link{background:none;border:0;color:var(--mustard);font-weight:600;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-sm{padding:7px 12px;font-size:13px}
+
+/* formulários */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.input{width:100%;background:var(--board);border:1.5px solid var(--line);border-radius:8px;padding:11px 13px;font-size:16px;color:var(--cream)}
+.input:focus{border-color:var(--mustard);outline:none}
+.input.pin{letter-spacing:.5em;font-family:var(--font-slab);font-weight:700}
+.form{display:flex;flex-direction:column;gap:14px}
+.form-err{color:#ff8d86;font-size:14px;font-weight:600;min-height:1.2em}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* login */
+.login{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding-block:48px 56px}
+.login-hero{min-width:0}
+.login-hero .wm-script{font-size:clamp(46px,7vw,76px);text-shadow:4px 4px 0 var(--red)}
+.login-hero .logo-big{display:none;max-width:260px;margin-bottom:8px}
+.tem-logo .login-hero .logo-big{display:block}
+.tem-logo .login-hero .wm-script{display:none}
+.login-hero h1{margin-top:14px}
+.login-hero .lead{color:var(--muted);font-size:17px;max-width:46ch;margin-top:18px}
+.menu-list{margin-top:26px;display:flex;flex-direction:column;gap:12px;max-width:440px}
+.menu-item{display:flex;align-items:baseline;gap:10px;border-bottom:1.5px solid var(--mustard);padding-bottom:6px}
+.menu-item .mi-name{font-family:var(--font-slab);font-weight:700;color:var(--mustard);font-size:17px}
+.menu-item .mi-desc{font-size:13px;color:var(--muted)}
+.menu-item .mi-val{margin-left:auto;font-family:var(--font-slab);font-weight:700;color:var(--cream);white-space:nowrap}
+.card{background:var(--panel);border-radius:14px;padding:24px;border:1px solid var(--line)}
+.tabs{display:flex;gap:4px;background:var(--board);border-radius:10px;padding:4px;margin-bottom:18px}
+.tab{flex:1;border:0;background:transparent;padding:9px 10px;border-radius:7px;font-family:var(--font-slab);font-weight:700;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--red);color:var(--cream)}
+.login-foot{margin-top:14px;text-align:center}
+
+/* home */
+.hello{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px;padding-top:30px}
+.hello h1{font-family:var(--font-slab);font-weight:800;font-size:clamp(26px,4vw,36px)}
+.hello h1 span{color:var(--mustard)}
+.hello p{color:var(--muted);margin-top:6px}
+.score-strip{display:flex;gap:10px;flex-wrap:wrap}
+.score-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:130px}
+.score-box .k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.score-box .v{font-family:var(--font-slab);font-weight:800;font-size:24px;color:var(--mustard)}
+
+.courses{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:20px}
+.course{background:var(--panel);border-radius:14px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.course-cover{position:relative;aspect-ratio:16/9;max-width:100%;background:var(--ink)}
+.course-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.course-cover .chip{position:absolute;top:12px;left:12px}
+.course-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:12px;flex:1}
+.course-title{font-family:var(--font-slab);font-weight:800;font-size:21px;color:var(--mustard);border-bottom:1.5px solid var(--mustard);padding-bottom:6px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.course-title .best{margin-left:auto;font-size:15px;color:var(--cream);white-space:nowrap}
+.course-sub{color:var(--muted);font-size:14px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.meta b{color:var(--cream)}
+.progress{height:6px;background:var(--board);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--mustard);border-radius:99px;transition:width .4s}
+.course-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.course-actions .btn{flex:1;min-width:150px}
+.hint{font-size:12px;color:var(--muted)}
+
+/* ranking em estilo cardápio */
+.rank-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.pill{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--muted)}
+.pill[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard);color:var(--ink)}
+.rank-list{display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 18px}
+.rk{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.rk:last-child{border-bottom:0}
+.rk .pos{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-slab);font-weight:800;font-size:14px;background:var(--panel-2);color:var(--muted)}
+.rk.p1 .pos{background:var(--mustard);color:var(--ink)}
+.rk.p2 .pos{background:#d9d2c5;color:var(--ink)}
+.rk.p3 .pos{background:#b9763a;color:var(--ink)}
+.rk .nm{font-family:var(--font-slab);font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk .st{font-size:12px;color:var(--muted)}
+.rk .pts{font-family:var(--font-slab);font-weight:800;color:var(--mustard);font-size:17px;text-align:right}
+.rk .pts small{display:block;font-size:11px;font-weight:600;color:var(--muted);font-family:var(--font-body)}
+.rk.me .nm{color:var(--mustard)}
+.rk.me{background:linear-gradient(90deg,color-mix(in srgb,var(--red) 35%,transparent),transparent);margin-inline:-18px;padding-inline:18px;border-radius:6px}
+.empty{padding:22px 4px;color:var(--muted);text-align:center}
+
+.two-col{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:24px;align-items:start}
+.hist{width:100%;border-collapse:collapse;font-size:14px}
+.hist th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 6px;border-bottom:1.5px solid var(--mustard)}
+.hist td{padding:9px 6px;border-bottom:1px solid var(--line)}
+.table-scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 14px}
+
+/* estudo */
+.study-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:22px}
+.study-top h1{font-family:var(--font-slab);font-weight:800;font-size:clamp(20px,3vw,26px);flex:1;min-width:0}
+.slide-stage{margin-top:16px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px;align-items:start}
+.slide-frame{background:var(--ink);border-radius:12px;overflow:hidden;aspect-ratio:16/9;max-width:100%;border:1px solid var(--line)}
+.slide-frame img{width:100%;height:100%;object-fit:contain;display:block}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.note h2{font-family:var(--font-slab);font-weight:800;font-size:20px;color:var(--mustard)}
+.note p{color:var(--cream);font-size:15px;line-height:1.6}
+.note .count{font-family:var(--font-slab);font-weight:700;color:var(--muted);font-size:13px}
+.slide-nav{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+.slide-nav .btn{flex:1}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 6px;margin-top:6px}
+.thumb{flex:0 0 auto;width:96px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--ink);position:relative;opacity:.55}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.seen{opacity:.85}
+.thumb[disabled]{opacity:.25;cursor:not-allowed}
+.thumb[aria-current="true"]{border-color:var(--mustard);opacity:1}
+.thumb span{position:absolute;bottom:2px;right:4px;font-size:10px;font-weight:800;color:var(--cream);text-shadow:0 1px 2px #000}
+
+/* quiz */
+.quiz{padding-block:22px 40px;max-width:980px;margin:0 auto}
+.q-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.q-head .q-course{font-family:var(--font-slab);font-weight:700;color:var(--muted);font-size:14px;flex:1;min-width:0}
+.q-score{font-family:var(--font-slab);font-weight:800;font-size:22px;color:var(--mustard)}
+.q-dots{display:flex;gap:4px;margin-top:12px}
+.q-dots i{flex:1;height:6px;border-radius:99px;background:var(--panel-2)}
+.q-dots i.ok{background:var(--ok)}
+.q-dots i.bad{background:var(--bad)}
+.q-dots i.cur{background:var(--mustard)}
+.q-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;margin-top:26px}
+.timer{position:relative;width:78px;height:78px}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer .bg{stroke:var(--panel-2)}
+.timer .fg{stroke:var(--mustard);transition:stroke-dashoffset .25s linear,stroke .3s}
+.timer.low .fg{stroke:var(--red-hi)}
+.timer b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-slab);font-weight:800;font-size:24px}
+.q-text{font-family:var(--font-slab);font-weight:700;font-size:clamp(20px,3vw,28px);line-height:1.3}
+.q-num{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--mustard);margin-bottom:6px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
+.opt{display:flex;align-items:center;gap:14px;text-align:left;border:0;border-radius:12px;padding:18px 18px;min-height:84px;
+  font-weight:700;font-size:16px;line-height:1.35;color:var(--cream);box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .12s,opacity .25s,filter .2s}
+.opt:hover:not([disabled]){transform:translateY(-2px);filter:brightness(1.07)}
+.opt .shape{flex:0 0 34px;height:34px;display:grid;place-items:center;border-radius:8px;background:rgba(0,0,0,.18)}
+.opt .shape svg{width:20px;height:20px}
+.opt.a{background:var(--opt-a)}
+.opt.b{background:var(--opt-b);color:var(--ink)}
+.opt.c{background:var(--opt-c)}
+.opt.d{background:var(--opt-d);color:var(--ink)}
+.opt[disabled]{cursor:default}
+.opts.done .opt{opacity:.35}
+.opts.done .opt.right{opacity:1;outline:4px solid var(--ok);outline-offset:3px}
+.opts.done .opt.picked.wrong{opacity:.9;outline:4px solid var(--bad);outline-offset:3px}
+.opt .mark{margin-left:auto;font-size:22px;font-weight:800}
+
+.feedback{margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.fb-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.fb-title{font-family:var(--font-script);font-size:34px;line-height:1.1}
+.fb-title.ok{color:var(--ok)}
+.fb-title.bad{color:#ff8d86}
+.fb-pts{font-family:var(--font-slab);font-weight:800;font-size:18px;color:var(--mustard)}
+.fb-exp{color:var(--cream)}
+.fb-ref{font-size:13px;color:var(--muted)}
+.live-rank{position:relative;transition:height .3s}
+.live-rank .rk{position:absolute;left:0;right:0;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .4s;margin:0}
+.live-rank .rk{padding-inline:8px}
+.live-rank .rk.me{margin-inline:0;padding-inline:8px}
+.next-row{display:flex;justify-content:flex-end;margin-top:18px}
+
+.intro{max-width:640px;margin:30px auto 0;text-align:left}
+.rules{display:flex;flex-direction:column;gap:0;margin:18px 0 24px}
+.rules .menu-item{padding-block:10px 8px}
+
+/* resultado */
+.result{padding-block:30px 50px}
+.result-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:28px;align-items:center}
+.big-pct{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;text-align:center;background:var(--panel);border:6px solid var(--mustard)}
+.big-pct.fail{border-color:var(--red-hi)}
+.big-pct b{font-family:var(--font-slab);font-weight:800;font-size:44px;line-height:1}
+.big-pct span{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.result-hero h1{font-family:var(--font-script);font-weight:400;font-size:clamp(38px,6vw,56px);color:var(--mustard);line-height:1.05}
+.result-hero h1.fail{color:var(--cream)}
+.result-hero p{color:var(--muted);margin-top:8px;font-size:16px}
+.result-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.review{display:flex;flex-direction:column;gap:10px}
+.rv{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:10px;padding:14px 16px}
+.rv h3{font-family:var(--font-slab);font-size:15px;font-weight:700}
+.rv p{font-size:14px;margin-top:6px;color:var(--muted)}
+.rv p b{color:var(--cream)}
+.save-state{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* celebração */
+.party{position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at center,#3a1014 0%,var(--ink) 70%);display:grid;place-items:center;overflow:hidden}
+.party canvas{position:absolute;inset:0;width:100%;height:100%}
+.party-inner{position:relative;text-align:center;padding:24px}
+.neon{font-family:var(--font-script);font-size:clamp(64px,14vw,150px);color:#fff6e4;line-height:1;
+  text-shadow:0 0 6px #fff,0 0 18px var(--mustard),0 0 42px var(--mustard),0 0 80px var(--red-hi);animation:flicker 2.4s infinite}
+.party-sub{font-family:var(--font-slab);font-weight:700;font-size:clamp(17px,2.4vw,22px);color:var(--cream);margin-top:14px}
+.party .checker{position:absolute;left:0;right:0;height:28px;background-size:28px 28px}
+.party .checker.top{top:0}
+.party .checker.bot{bottom:0}
+.party .btn{margin-top:26px}
+@keyframes flicker{0%,18%,22%,25%,53%,57%,100%{opacity:1}20%,24%,55%{opacity:.55}}
+
+/* gestor */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--font-slab);font-weight:800;font-size:28px;color:var(--mustard);margin-top:2px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .input{width:auto;padding:8px 12px;font-size:14px}
+.gt{width:100%;border-collapse:collapse;font-size:14px;min-width:1180px}
+.gt th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 8px;border-bottom:1.5px solid var(--mustard);white-space:nowrap}
+.gt td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.gt td.nm{font-family:var(--font-slab);font-weight:700}
+.pinform{display:flex;gap:6px;align-items:center}
+.pinform .input{width:90px;padding:6px 8px;font-size:14px}
+.miss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.miss-item{padding:10px 0;border-bottom:1px solid var(--line)}
+.miss-item:last-child{border-bottom:0}
+.miss-item .mq{font-size:14px}
+.miss-bar{display:flex;align-items:center;gap:10px;margin-top:6px}
+.miss-bar .track{flex:1;height:8px;background:var(--board);border-radius:99px;overflow:hidden}
+.miss-bar .track i{display:block;height:100%;background:var(--red-hi);border-radius:99px}
+.miss-bar span{font-family:var(--font-slab);font-weight:700;font-size:13px;color:var(--cream);min-width:92px;text-align:right}
+
+.foot{margin-top:56px}
+.foot .wrap{padding-block:14px 26px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--cream);color:var(--ink);
+  padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+
+@media (max-width:1000px){
+  .miss{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:860px){
+  .login{grid-template-columns:1fr;gap:28px;padding-block:28px 40px}
+  .two-col,.slide-stage,.feedback,.miss{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:560px){
+  .opts{grid-template-columns:minmax(0,1fr)}
+  .opt{min-height:64px;padding:14px}
+  .q-main{grid-template-columns:minmax(0,1fr)}
+  .timer{width:64px;height:64px;order:-1}
+  .result-hero{grid-template-columns:minmax(0,1fr)}
+  .big-pct{width:120px;height:120px}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .who .chip{display:none}
+  .score-strip{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .score-box{min-width:0;padding:10px 12px}
+  .score-box .v{font-size:20px}
+  .course-actions .btn{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+</style>
+</head>
+<body>
+
+<div id="demo-bar" class="demo-bar" hidden>Modo demonstração: os dados ficam salvos só neste aparelho. Código da equipe <code>1978</code> · Senha do gestor <code>gestor1978</code></div>
+<header class="topbar" id="topbar" hidden>
+  <div class="checker fino"></div>
+  <div class="wrap">
+    <button class="brand" id="brand" aria-label="Início">
+      <img class="brand-logo" src="assets/logo.png" alt="Drive in Burger" onerror="this.remove()">
+      <span class="wm"><span class="wm-script">Drive in Burger</span><span class="wm-sub">Academia Drive</span></span>
+    </button>
+    <span class="grow"></span>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+<main>
+  <section id="v-login" hidden></section>
+  <section id="v-home" hidden></section>
+  <section id="v-estudo" hidden></section>
+  <section id="v-quiz" hidden></section>
+  <section id="v-resultado" hidden></section>
+  <section id="v-gestor" hidden></section>
+</main>
+<footer class="foot">
+  <div class="checker"></div>
+  <div class="wrap"><span>Drive in Burger · desde 1978</span><span>Academia Drive · treinamento da equipe</span></div>
+</footer>
+<script>
+/* =====================================================================
+   CONTEÚDO DOS CURSOS — edite aqui textos, slides e perguntas.
+   Em cada pergunta, a PRIMEIRA opção é a correta (a ordem é embaralhada
+   na hora do quiz). "e" é a explicação mostrada depois da resposta.
+   ===================================================================== */
+const CURSOS = [
+  {
+    id: 'atendimento',
+    curto: 'Atendimento',
+    titulo: 'Atendimento de Excelência',
+    sub: 'O passo a passo para encantar nossos clientes, da recepção ao fechamento.',
+    area: 'Salão',
+    capa: 'slides/atendimento/01.jpg',
+    porTentativa: 15,
+    slides: [
+      { img: 'slides/atendimento/01.jpg', t: 'Passo a passo do atendimento de excelência', n: 'Um guia prático para encantar nossos clientes. Ao final, faça a avaliação: 80% de acertos aprova.' },
+      { img: 'slides/atendimento/02.jpg', t: 'A nossa essência', n: 'Inaugurado em 1978, o Drive In Burger é referência. A famosa maionese foi criada pela Dona Benvinda, uma das fundadoras: é nossa marca registrada e uma receita original, segredo de família. Mantemos a tradição da comida afetiva, com um sabor que traz lembranças de momentos felizes.' },
+      { img: 'slides/atendimento/03.jpg', t: 'O mapa da jornada do cliente', n: '1. Recepção (acolhimento e acomodação) → 2. Sistema digital (navegação e pedidos pelo tablet) → 3. Entrega do pedido (cuidado, gentileza e precisão) → 4. Fechamento (pagamento ágil e despedida).' },
+      { img: 'slides/atendimento/04.jpg', t: 'Passo 1 · A recepção perfeita', n: 'Abordagem: “Olá, seja bem-vindo ao Drive! Mesa para quantas pessoas? Tem preferência por alguma mesa?”. Assim que o cliente sentar, entregue o Jogo Americano. Famílias: ofereça o kit infantil (tablet de atividades, desenho para colorir e giz de cera) e lembre do painel interativo no espaço kids.' },
+      { img: 'slides/atendimento/05.jpg', t: 'Passo 2 · Dominando o sistema digital', n: 'Pergunte se já conhecem o sistema digital. Se SIM: lembre as seções “Preciso de Auxílio” e “Meu Pedido” e a lixeirinha do carrinho. Se NÃO: mostre fotos e descrições, ensine a caneta (alterar) e a lixeira (excluir), reforce a Regra de Ouro (pedidos da mesa enviados JUNTOS) e a conferência em “Meu Pedido”. Pagamento: pelo tablet ou no Totem, ao lado do caixa. Encerramento: “Boa refeição! Bom lanche!”.' },
+      { img: 'slides/atendimento/06.jpg', t: 'Passo 3 · O cuidado na entrega', n: 'Peça licença antes de interferir no espaço da mesa. Anuncie o nome do prato ou bebida para identificar quem pediu. Coloque os itens com gentileza e suavidade, nunca de qualquer jeito. Feche perguntando se precisa de mais alguma coisa e deseje bom apetite.' },
+      { img: 'slides/atendimento/07.jpg', t: 'Passo 4 · Fechamento e extensão da experiência', n: 'Pagamento ágil: o cliente escolhe fechar a conta pelo tablet na mesa (mais conforto) ou no Totem de autoatendimento (mais agilidade).' },
+      { img: 'slides/atendimento/08.jpg', t: 'Por que fazemos isso? O impacto real', n: 'Quando seguimos o passo a passo com atenção, transformamos uma simples refeição em uma experiência memorável. É o que os clientes elogiam: tablet, rapidez, atendimento e o kit kids.' }
+    ],
+    perguntas: [
+      { id: 'at01', p: 'Em que ano o Drive In Burger foi inaugurado?', o: ['1978', '1988', '1968', '1998'], e: 'Desde 1978 o Drive In Burger é referência.', ref: 2 },
+      { id: 'at02', p: 'Quem criou a famosa maionese do Drive In?', o: ['Dona Benvinda, uma das fundadoras', 'O primeiro chapeiro da casa', 'Um chef convidado na inauguração', 'A consultoria que montou o cardápio'], e: 'A maionese foi criada pela Dona Benvinda, uma das fundadoras. A receita original é segredo de família.', ref: 2 },
+      { id: 'at03', p: 'O que a maionese representa para o Drive In?', o: ['Marca registrada e receita original, guardada como segredo de família', 'Molho comprado pronto de um fornecedor exclusivo da rede', 'Receita nova, lançada junto com a última troca de cardápio', 'Acompanhamento servido apenas nos pratos do Menu Kids'], e: 'A maionese é nossa marca registrada e um símbolo da nossa tradição desde a fundação.', ref: 2 },
+      { id: 'at04', p: 'O que significa “comida afetiva” na nossa essência?', o: ['Um sabor que traz lembranças de momentos felizes para dividir com quem amamos', 'Porções bem servidas, pensadas para dividir com toda a mesa e a família', 'Receitas que mudam toda semana para surpreender quem volta à casa', 'Comida servida mais rápido que na concorrência, sem perder a qualidade'], e: 'Mantemos a tradição da comida afetiva: um sabor especial que traz lembranças de momentos felizes.', ref: 2 },
+      { id: 'at05', p: 'Qual é a ordem correta da jornada do cliente?', o: ['Recepção → Sistema digital → Entrega do pedido → Fechamento', 'Sistema digital → Recepção → Fechamento → Entrega do pedido', 'Recepção → Entrega do pedido → Sistema digital → Fechamento', 'Fechamento → Recepção → Sistema digital → Entrega do pedido'], e: 'São 4 passos: recepção, sistema digital (tablet), entrega do pedido e fechamento.', ref: 3 },
+      { id: 'at06', p: 'Qual é a abordagem inicial padrão na recepção?', o: ['“Olá, seja bem-vindo ao Drive! Mesa para quantas pessoas? Tem preferência por alguma mesa?”', '“Boa noite! Aguardem um momento aqui na entrada que já chamo alguém do salão para atender.”', '“Oi, tudo bem? Vocês fizeram reserva? Sem reserva hoje só conseguimos lugar no balcão.”', '“Seja bem-vindo ao Drive! Já sabem o que vão pedir hoje ou querem ver o cardápio antes?”'], e: 'A abordagem acolhe, pergunta o número de pessoas e a preferência de mesa.', ref: 4 },
+      { id: 'at07', p: 'Assim que o cliente se senta, o que deve ser entregue?', o: ['O Jogo Americano', 'A comanda de papel', 'A senha do Wi-Fi', 'Os talheres embalados'], e: 'Assim que o cliente sentar, entregue o Jogo Americano.', ref: 4 },
+      { id: 'at08', p: 'Chegou uma família com crianças. Qual é o nosso diferencial?', o: ['Oferecer o kit infantil (tablet de atividades, desenho e giz de cera) e lembrar do painel interativo no espaço kids', 'Indicar a mesa mais perto do espaço kids e trazer o cardápio infantil impresso para as crianças escolherem', 'Oferecer um desconto no Menu Kids e trazer um copo com canudo para cada criança antes do pedido', 'Levar as crianças até o espaço kids e pedir que fiquem lá enquanto os pais fazem o pedido no tablet'], e: 'Atenção especial às famílias: kit infantil e o painel interativo do espaço kids.', ref: 4 },
+      { id: 'at09', p: 'No Passo 2, qual pergunta define como você vai apresentar o tablet?', o: ['“Já conhecem o nosso sistema digital?”', '“Vão querer começar pelas bebidas?”', '“Preferem pagar no caixa ou no totem?”', '“Alguém da mesa está com pressa?”'], e: 'A resposta (sim ou não) define se você só relembra as funções ou ensina o sistema completo.', ref: 5 },
+      { id: 'at10', p: 'O cliente diz que já conhece o sistema digital. O que você lembra a ele?', o: ['As seções “Preciso de Auxílio” e “Meu Pedido”, e a lixeirinha do carrinho para alterar antes de enviar', 'Nada além de desejar boa refeição: quem já conhece o sistema não precisa de lembrete', 'Como cadastrar o cartão de crédito no tablet e acumular pontos no programa de fidelidade', 'Que os pedidos de bebida são feitos com o atendente e os de comida pelo tablet da mesa'], e: 'Mesmo quem já conhece recebe o lembrete das funções básicas e da lixeirinha.', ref: 5 },
+      { id: 'at11', p: 'Qual é a Regra de Ouro do sistema digital?', o: ['Os pedidos de todos da mesa são incluídos e enviados JUNTOS, para não chegarem em momentos diferentes', 'Cada pessoa da mesa envia o próprio pedido assim que escolher, para a cozinha começar antes', 'As bebidas são enviadas primeiro e os lanches depois, para tudo chegar na ordem certa', 'O atendente confere e envia o pedido no lugar do cliente, para evitar erros no tablet'], e: 'Pedidos enviados juntos chegam juntos à mesa.', ref: 5 },
+      { id: 'at12', p: 'No tablet, para que servem a caneta e a lixeira?', o: ['A caneta altera um item; a lixeira exclui', 'A caneta chama o atendente; a lixeira fecha a conta', 'A caneta assina a conta; a lixeira cancela a mesa', 'A caneta deixa um elogio; a lixeira apaga o histórico'], e: 'Edição: caneta para alterar, lixeira para excluir.', ref: 5 },
+      { id: 'at13', p: 'Onde o cliente confere se o pedido está certo?', o: ['Na seção “Meu Pedido”', 'Na seção “Preciso de Auxílio”', 'No Totem de autoatendimento', 'No cardápio físico'], e: 'Conferência: indique a seção “Meu Pedido”.', ref: 5 },
+      { id: 'at14', p: 'Onde fica o Totem de autoatendimento?', o: ['Ao lado do caixa', 'Na entrada, junto da recepção', 'No espaço kids', 'No mezanino'], e: 'O Totem fica ao lado do caixa. Informe isso ao apresentar as formas de pagamento.', ref: 5 },
+      { id: 'at15', p: 'Como encerramos a apresentação do sistema digital?', o: ['“Boa refeição! Bom lanche!”', '“Qualquer coisa, é só chamar.”', '“O pedido sai em 20 minutos.”', '“Obrigado pela preferência!”'], e: 'Os dois caminhos (conhece / não conhece) terminam com “Boa refeição! Bom lanche!”.', ref: 5 },
+      { id: 'at16', p: 'Ao chegar à mesa com o pedido, qual é o primeiro cuidado?', o: ['Aproximar-se com calma e pedir licença antes de interferir no espaço da mesa', 'Colocar os pratos rapidamente na mesa para que não esfriem no caminho', 'Esperar em silêncio ao lado da mesa até que o cliente note a sua presença', 'Chamar o cliente pelo número da mesa para confirmar que o pedido é dele'], e: 'Pedir licença evita acidentes e não parece apressado ou grosseiro.', ref: 6 },
+      { id: 'at17', p: 'Por que anunciamos em voz alta o nome do prato ou bebida?', o: ['Para identificar rapidamente quem fez o pedido', 'Para a cozinha confirmar que o pedido saiu', 'Para chamar a atenção das outras mesas', 'Para conferir o preço com o cliente'], e: 'Anunciar identifica quem pediu, sem ficar perguntando item por item.', ref: 6 },
+      { id: 'at18', p: 'Como deve ser o fechamento da entrega?', o: ['Perguntar se o cliente precisa de mais alguma coisa e desejar bom apetite', 'Perguntar se já pode trazer a conta, para agilizar o giro das mesas', 'Recolher o Jogo Americano e os papéis que estiverem sobre a mesa', 'Sair em silêncio para não interromper a conversa dos clientes'], e: 'Fechamento: pergunte se precisa de algo mais e deseje um bom apetite.', ref: 6 },
+      { id: 'at19', p: 'Na entrega, o que nunca deve acontecer?', o: ['Deixar os pratos de qualquer jeito na mesa', 'Pedir licença antes de servir', 'Anunciar o nome do prato', 'Perguntar se o cliente precisa de algo mais'], e: 'Gentileza: itens colocados com educação e extrema suavidade.', ref: 6 },
+      { id: 'at20', p: 'Quais formas de fechar a conta apresentamos ao cliente?', o: ['Pelo tablet na mesa, para mais conforto, ou no Totem, para mais agilidade', 'Somente no caixa, com o atendente, para conferir a conta junto com o cliente', 'Somente pelo tablet da mesa, com cartão cadastrado no próprio sistema', 'Somente no Totem de autoatendimento, na saída, depois de devolver o tablet'], e: 'O cliente escolhe: tablet na mesa (conforto) ou Totem de autoatendimento (agilidade).', ref: 7 },
+      { id: 'at21', p: 'Qual é o resultado do Padrão Drive In?', o: ['Transformar uma simples refeição em uma experiência memorável', 'Atender mais mesas por hora sem precisar aumentar a equipe', 'Reduzir o número de atendentes necessários no salão', 'Fazer o cliente pedir mais sobremesas ao final da refeição'], e: 'Seguir o passo a passo transforma uma refeição em uma experiência memorável.', ref: 8 }
+    ]
+  },
+  {
+    id: 'saladas',
+    curto: 'Ilha de Saladas',
+    titulo: 'Ilha de Saladas',
+    sub: 'Abertura da ilha, rotulagem, organização da bancada e as fichas técnicas oficiais.',
+    area: 'Cozinha',
+    capa: 'slides/saladas/01.jpg',
+    porTentativa: 15,
+    slides: [
+      { t: 'Ilha de Saladas', n: 'Módulo de abertura, padrões e fichas técnicas. Conteúdo técnico da PlanoA Consultoria.' },
+      { t: 'Objetivos do curso', n: 'Padronizar a abertura, garantir quantidade e apresentação, assegurar rastreabilidade, fixar as duas fichas técnicas e bater a meta diária de mini saladas.' },
+      { t: 'Por que o padrão importa', n: 'Consistência, custo controlado, segurança alimentar e agilidade no rush.' },
+      { t: 'Checklist de abertura', n: 'Ervilha 1 lata · milho 1 lata · picles 400 g · mix 10 pacotes · rúcula 1 pacote · 15 ovos cozidos · maionese 500 g · tomate 1 cuba · alface crespa 2 cubas + 1 caixa · repolho roxo 200 g. Pepino, cenoura, tomate cereja e frango/molho: conforme demanda.' },
+      { t: 'Rotulagem e rastreabilidade', n: 'Toda cuba armazenada leva etiqueta com produto, marca, lote, data de abertura, data de validade e responsável.' },
+      { t: 'Organização da bancada', n: 'Da esquerda para a direita, na ordem de montagem: tomate, alface, ovos, maionese/molho, repolho, milho, ervilha, picles e rúcula (reposição ao lado).' },
+      { t: 'Ficha técnica · Salada Crocante de Frango', n: 'Alface americana 100 g · frango 100 g (1 medidor) · pepino 40 g (10 rodelas) · repolho roxo 15 g · milho 50 g · tomate cereja 3 unidades. Rendimento 350 g. Medidor é o utensílio padrão, nunca “a olho”.' },
+      { t: 'Montagem · Salada Crocante de Frango', n: 'Alface no prato padrão → frango → 10 rodelas de pepino → repolho roxo → milho → finalizar com 3 tomates cereja.' },
+      { t: 'Ficha técnica · Caesar Salad', n: 'Tomate 4 fatias · alface crespa · salada italiana 1 pacote · rúcula · 1 ovo cozido · croutons 7 g (1 medidor). Rendimento 257 g. Proteína opcional: alcatra 150 g ou frango 160 g.' },
+      { t: 'Montagem · Caesar Salad', n: 'Tomates nas laterais → alface crespa cortada ao meio → salada italiana → rúcula → ovo cortado ao meio nas laterais → croutons medidos para finalizar.' },
+      { t: 'Meta de produção na abertura', n: '50 mini saladas para o salão e 30 para viagem, prontas antes do pico. Não é produção sob demanda no rush.' },
+      { t: 'Boas práticas de conservação', n: 'Cuba aberta é filmada e etiquetada na hora. Item vencido nunca é reaproveitado. Molhos com data de abertura. Reposição fechada até o uso. O responsável do turno assina a etiqueta.' },
+      { t: 'Checklist resumido de abertura', n: 'Insumos completos, cubas etiquetadas, bancada na ordem de montagem, 50 + 30 mini saladas prontas, molho e maionese identificados.' },
+      { t: 'Fixação', n: 'Revise as perguntas do slide antes de fazer a avaliação.' },
+      { t: 'Padrão + agilidade + segurança', n: 'Dúvidas são alinhadas com o responsável de cozinha ou salão.' }
+    ],
+    perguntas: [
+      { id: 'sa01', p: 'Na abertura da ilha, quantos ovos cozidos devem estar prontos?', o: ['15 unidades', '10 unidades', '20 unidades', '30 unidades'], e: 'O checklist de abertura pede 15 ovos cozidos.', ref: 4 },
+      { id: 'sa02', p: 'Quantos pacotes de mix de folhas devem estar prontos na abertura?', o: ['10 pacotes', '5 pacotes', '1 pacote', '15 pacotes'], e: 'Mix (folhas): 10 pacotes.', ref: 4 },
+      { id: 'sa03', p: 'Qual é a quantidade de picles cortado na abertura?', o: ['400 g', '200 g', '500 g', '1 kg'], e: 'Picles cortado: 400 g.', ref: 4 },
+      { id: 'sa04', p: 'Quanto de maionese da casa deve estar pronta na abertura?', o: ['500 g', '400 g', '1 kg', '200 g'], e: 'Maionese da casa: 500 g.', ref: 4 },
+      { id: 'sa05', p: 'Qual é a quantidade de alface crespa na abertura?', o: ['2 cubas + 1 caixa', '1 cuba + 1 caixa', '2 caixas fechadas', '3 cubas + 2 caixas'], e: 'Alface crespa: 2 cubas e mais 1 caixa.', ref: 4 },
+      { id: 'sa06', p: 'Qual é a quantidade de repolho roxo na abertura?', o: ['200 g', '400 g', '100 g', '1 cuba cheia'], e: 'Repolho roxo: 200 g.', ref: 4 },
+      { id: 'sa07', p: 'Quais itens são preparados “conforme demanda”?', o: ['Pepino fatiado, cenoura ralada, tomate cereja e frango/molho da casa', 'Ervilha, milho, picles cortado, rúcula e o mix de folhas em pacote', 'Ovos cozidos, maionese da casa, repolho roxo e tomate fatiado', 'Alface crespa, tomate fatiado, ervilha, milho e o molho da casa'], e: 'Esses quatro itens não têm quantidade fixa na abertura: seguem a demanda.', ref: 4 },
+      { id: 'sa08', p: 'Quais informações não podem faltar na etiqueta de uma cuba?', o: ['Produto, marca, lote, data de abertura, data de validade e responsável', 'Produto, fornecedor, peso, data de validade, preço e turno da abertura', 'Produto, lote, data de validade e o nome de quem vai usar a cuba', 'Produto, marca, data de entrega, temperatura e assinatura do gerente'], e: 'São seis informações obrigatórias para garantir a rastreabilidade.', ref: 5 },
+      { id: 'sa09', p: 'Qual lógica define a ordem das cubas na bancada?', o: ['A ordem de montagem do prato, da esquerda para a direita', 'A ordem alfabética dos ingredientes, da esquerda para a direita', 'Do item mais usado para o menos usado, da direita para a esquerda', 'A posição que estiver livre, conforme o espaço da bancada no dia'], e: 'A sequência segue a ordem de montagem do prato.', ref: 6 },
+      { id: 'sa10', p: 'Qual é a primeira cuba da linha na bancada?', o: ['Tomate fatiado', 'Rúcula', 'Picles', 'Ervilha'], e: 'A linha começa com tomate fatiado, seguido de alface e ovos.', ref: 6 },
+      { id: 'sa11', p: 'Onde fica a rúcula na organização da bancada?', o: ['Na reposição, ao lado da linha', 'Na primeira cuba da linha', 'No meio, entre milho e ervilha', 'Fora da bancada, só na câmara fria'], e: 'A rúcula é o último item, com a reposição ao lado.', ref: 6 },
+      { id: 'sa12', p: 'Quantas rodelas de pepino entram na Salada Crocante de Frango?', o: ['10 rodelas', '5 rodelas', '8 rodelas', '12 rodelas'], e: 'Pepino: 40 g, que correspondem a 10 rodelas.', ref: 7 },
+      { id: 'sa13', p: 'Qual é o rendimento da Salada Crocante de Frango?', o: ['350 g', '257 g', '300 g', '400 g'], e: 'A Salada Crocante de Frango rende 350 g.', ref: 7 },
+      { id: 'sa14', p: 'Quanto de frango vai na Salada Crocante de Frango?', o: ['100 g (1 medidor)', '160 g (1 medidor)', '150 g (2 medidores)', '50 g (meio medidor)'], e: 'Frango: 100 g, 1 medidor.', ref: 7 },
+      { id: 'sa15', p: 'Quantos tomates cereja vão na Salada Crocante de Frango?', o: ['3 unidades', '5 unidades', '1 unidade', '10 unidades'], e: 'Tomate cereja: 45 g, 3 unidades.', ref: 7 },
+      { id: 'sa16', p: 'O que significa “medidor” nas fichas técnicas?', o: ['O utensílio padrão da casa, nunca porção “a olho”', 'Qualquer colher ou concha disponível na bancada', 'A quantidade que o cozinheiro estimar no momento', 'Uma mão cheia do ingrediente, com luva descartável'], e: 'O medidor é sempre o utensílio padrão da casa.', ref: 7 },
+      { id: 'sa17', p: 'Qual é o primeiro passo da montagem da Salada Crocante de Frango?', o: ['Colocar a porção de alface americana no prato padrão', 'Adicionar o frango porcionado no centro do prato', 'Distribuir as 10 rodelas de pepino no prato padrão', 'Adicionar o milho e o repolho roxo no fundo do prato'], e: 'Começa pela alface americana; o frango vem em seguida.', ref: 8 },
+      { id: 'sa18', p: 'Como termina a montagem da Salada Crocante de Frango?', o: ['Com os 3 tomates cereja', 'Com o frango porcionado', 'Com o repolho roxo', 'Com o milho'], e: 'Último passo: finalizar com os 3 tomates cereja.', ref: 8 },
+      { id: 'sa19', p: 'Qual é o rendimento da Caesar Salad?', o: ['257 g', '350 g', '333 g', '200 g'], e: 'A Caesar Salad rende 257 g.', ref: 9 },
+      { id: 'sa20', p: 'Quanto de frango vai na Caesar Salad com Frango?', o: ['160 g', '150 g', '100 g', '200 g'], e: 'Adição de proteína: frango 160 g.', ref: 9 },
+      { id: 'sa21', p: 'Quanto de alcatra vai na Caesar Salad com Alcatra?', o: ['150 g', '160 g', '100 g', '141 g'], e: 'Adição de proteína: alcatra 150 g.', ref: 9 },
+      { id: 'sa22', p: 'Qual é a porção de croutons da Caesar Salad?', o: ['7 g (1 medidor)', '20 g', '50 g', 'A gosto do cliente'], e: 'Croutons: 7 g, 1 medidor padrão.', ref: 9 },
+      { id: 'sa23', p: 'Como o ovo é colocado na Caesar Salad?', o: ['Cortado ao meio, nas laterais do prato', 'Picado em cubos, por cima da salada', 'Inteiro, no centro do prato, sobre a rúcula', 'Ralado por cima dos croutons, no final'], e: 'O ovo é cortado ao meio e vai nas laterais.', ref: 10 },
+      { id: 'sa24', p: 'Na Caesar Salad, onde vão os tomates?', o: ['Nas laterais do prato', 'No centro do prato', 'Por cima dos croutons', 'A Caesar não leva tomate'], e: 'Primeiro passo: tomates nas laterais do prato.', ref: 10 },
+      { id: 'sa25', p: 'Com o que se finaliza a Caesar Salad?', o: ['Croutons', 'Rúcula', 'Ovo cozido', 'Salada italiana'], e: 'A montagem termina com os croutons medidos.', ref: 10 },
+      { id: 'sa26', p: 'Quantas mini saladas para o salão devem estar prontas na abertura?', o: ['50', '30', '80', '20'], e: 'Meta: 50 mini saladas para o salão.', ref: 11 },
+      { id: 'sa27', p: 'Quantas mini saladas para viagem devem estar prontas na abertura?', o: ['30', '50', '20', '15'], e: 'Meta: 30 mini saladas para viagem.', ref: 11 },
+      { id: 'sa28', p: 'Quando as mini saladas devem ser produzidas?', o: ['Antes do horário de pico, nunca sob demanda no rush', 'Durante o rush, conforme os pedidos forem chegando', 'No fim do dia, para já deixar pronto para o dia seguinte', 'Só quando o cliente pedir, para a salada sair fresca'], e: 'A produção fica pronta antes do pico.', ref: 11 },
+      { id: 'sa29', p: 'O que fazer assim que uma cuba é aberta?', o: ['Filmar e etiquetar imediatamente', 'Etiquetar no fim do turno', 'Etiquetar só se sobrar produto', 'Nada, se for usada no mesmo dia'], e: 'Toda cuba aberta é filmada e etiquetada imediatamente.', ref: 12 },
+      { id: 'sa30', p: 'Quem assina a etiqueta das cubas?', o: ['O responsável do turno', 'O gerente geral', 'O fornecedor', 'Quem abriu a loja'], e: 'O responsável do turno assina a etiqueta.', ref: 12 },
+      { id: 'sa31', p: 'Como ficam as cubas de reposição?', o: ['Fechadas até o momento do uso', 'Abertas, para agilizar o rush', 'Descobertas, ao lado da bancada', 'No freezer, até o fim do turno'], e: 'Cubas de reposição ficam fechadas até o momento do uso.', ref: 12 },
+      { id: 'sa32', p: 'Um item passou da data de validade anotada. O que fazer?', o: ['Nunca reaproveitar', 'Usar se a aparência estiver boa', 'Usar só nas mini saladas', 'Misturar com o item novo'], e: 'Item vencido nunca é reaproveitado.', ref: 12 }
+    ]
+  },
+  {
+    id: 'lanches',
+    curto: 'Lanches',
+    titulo: 'Fichas Técnicas e Montagem de Lanches',
+    sub: 'Linha Big Halley (lanches abertos) e os 20 lanches fechados da linha Cheese Burger.',
+    area: 'Cozinha',
+    capa: 'slides/lanches/01.jpg',
+    porTentativa: 15,
+    slides: [
+      { t: 'Fichas técnicas e montagem de lanches', n: 'Módulo completo: Halley (lanches abertos) e tradicionais (fechados).' },
+      { t: 'Objetivos do curso', n: 'Ficha técnica da linha Big Halley, montagem dos 20 lanches fechados, peso e medida caseira, padrão de montagem e apresentação final.' },
+      { t: 'Duas linhas de produto', n: 'Parte 1: lanches abertos (Big Halley), pão aberto e proteína à vista. Parte 2: linha Cheese Burger, fechados no pacote ou abertos no prato.' },
+      { t: 'Parte 1 · Fichas técnicas', n: 'Lanches abertos da linha Big Halley.' },
+      { t: 'Big Halley · o que é fixo', n: 'Alface 12 g · tomate 3 fatias · pepino 4 fatias · milho e ervilha 1 medidor pequeno · maionese 1 concha pequena cheia (52 g) · pão 78 g · mussarela 1 fatia · presunto 1 fatia · ovo frito · bacon 3 fatias · batata 120 g (1 copo porcionador cheio).' },
+      { t: 'Big Halley · o que muda', n: 'Só a proteína: frango grelhado 167 g (1 un.) · alcatra 141 g (1 fatia) · fraldinha 223 g (2 hambúrgueres) · costela 155 g (2 hambúrgueres).' },
+      { t: 'Ficha técnica · Big Halley de Frango', n: 'Rendimento 745 g.' },
+      { t: 'Montagem · Big Halley de Frango', n: 'Alface na ponta do prato, tomate sobre a alface, pepino sobre o tomate, ervilha e milho à esquerda, maionese à direita. Pão aberto ao centro, frango, queijo e presunto, ovo, bacon e batata ao lado do pão.' },
+      { t: 'Ficha técnica · Big Halley de Alcatra', n: 'Rendimento 719 g.' },
+      { t: 'Montagem · Big Halley de Alcatra', n: 'Tomate à esquerda da alface, pepino à direita, ervilha e milho sobre a alface, maionese ao lado do pepino. Depois a mesma sequência do pão até a batata.' },
+      { t: 'Ficha técnica · Big Halley de Fraldinha', n: 'Rendimento 801 g, com 2 hambúrgueres de fraldinha (223 g).' },
+      { t: 'Montagem · Big Halley de Fraldinha', n: 'Tomate à esquerda, pepino sobre o tomate, ervilha, milho e maionese à direita da alface. Grelhar os hambúrgueres e seguir a sequência padrão.' },
+      { t: 'Ficha técnica · Big Halley de Costela', n: 'Rendimento 733 g, com 2 hambúrgueres de costela (155 g).' },
+      { t: 'Montagem · Big Halley de Costela', n: 'Mesma disposição do Big Halley de Alcatra, com os hambúrgueres de costela.' },
+      { t: 'Ficha técnica · American Burger', n: '4 hambúrgueres tradicionais (322 g), 4 fatias de mussarela, barbecue, cebola crispy e batata 120 g. Rendimento 860 g. Não leva ervilha, milho, presunto, ovo frito nem bacon.' },
+      { t: 'Montagem · American Burger', n: 'Alface, tomate, maionese à esquerda, pão aberto ao centro, dois hambúrgueres com queijo em cada metade, barbecue, cebola crispy e batata ao lado.' },
+      { t: 'Padrão de montagem no prato', n: 'Alface na ponta → tomate → pepino → ervilha e milho → maionese → pão aberto → proteína → queijo e presunto → ovo e bacon → batata ao lado do pão.' },
+      { t: 'Parte 2 · Montagem de lanches', n: 'Linha Cheese Burger: fechados.' },
+      { t: 'O padrão comum', n: 'Aquecer o pão (amassadeira ou chapa, 1 a 2 min) → pão no pacote (ou no prato) → abrir com o pegador → proteína com queijo derretido, pronta da chapa → complementos → maionese certa (artesanal, defumada ou tradicional).' },
+      { t: 'Cardápio de lanches · 20 receitas', n: 'Cheese Burger até Mini Cheese Burger.' },
+      { t: 'Cheese Burger', n: 'Fechado. Amassadeira 2 min · hambúrguer com mussarela · maionese artesanal.' },
+      { t: 'Cheese Burger de Fraldinha', n: 'Fechado. Hambúrguer de fraldinha com 2 fatias de cheddar · maionese defumada.' },
+      { t: 'Duplo Cheese Burger', n: 'Fechado. Dois hambúrgueres, uma fatia de mussarela em cada · maionese artesanal.' },
+      { t: 'Cheese Salada', n: 'Fechado. Alface crespa · 2 rodelas de tomate · hambúrguer com mussarela e presunto · maionese artesanal · finaliza com ervilha.' },
+      { t: 'Cheese Salada Egg', n: 'Fechado. Igual ao Cheese Salada, com o ovo antes da maionese · finaliza com ervilha.' },
+      { t: 'Cheese Salada Bacon', n: 'Fechado. Cheese Salada com ervilha e finalização com bacon picado.' },
+      { t: 'Cheese Salada Egg Bacon', n: 'Fechado. Ovo, maionese artesanal, ervilha e finalização com bacon em fatias picado.' },
+      { t: 'Duplo Burger Cheddar', n: 'Fechado. Alface crespa, tomate e dois hambúrgueres com uma fatia de cheddar cada · maionese artesanal.' },
+      { t: 'Top Cheese Frango', n: 'Fechado. Frango em cubos com mussarela · requeijão cremoso · milho · finaliza com batata palha.' },
+      { t: 'Cheese Frango Empanado', n: 'Aberto no prato. Pão aberto na chapa 2 min · alface americana · frango com mussarela · maionese artesanal na tampa.' },
+      { t: 'Cheese Alcatra', n: 'Fechado. Alface crespa, tomate, alcatra com mussarela · maionese artesanal.' },
+      { t: 'Top Cheese Alcatra', n: 'Fechado. Alface americana · 4 folhas de rúcula · alcatra com mussarela · maionese artesanal · 3 tomates secos.' },
+      { t: 'Crispy Barbecue', n: 'Aberto no prato. Pão crocante na chapa 1 min · hambúrguer com 2 fatias de cheddar · barbecue · cebola crispy · maionese tradicional na tampa.' },
+      { t: 'Cheese Frango Salada', n: 'Fechado. Alface crespa, tomate, frango com mussarela · maionese artesanal.' },
+      { t: 'Cheese Frango Crocante', n: 'Fechado. Frango com 2 fatias de cheddar · maionese artesanal · bacon picado · cebola crispy.' },
+      { t: 'Prime Burger Fraldinha', n: 'Aberto no prato. Pão crocante 1 min · alface americana cobrindo o pão · tomate · fraldinha com cheddar · 3 fatias de bacon · maionese na tampa.' },
+      { t: 'Cheddar Bacon Crispy', n: 'Aberto no prato. Pão tradicional 1 min · bacon · fraldinha com cheddar · tampa com maionese, cheddar cremoso e cebola crispy.' },
+      { t: 'American Sanduíche', n: 'Fechado. Pão tradicional na amassadeira · alface americana · tomate · hambúrguer com mussarela · maionese artesanal · barbecue · cebola crispy.' },
+      { t: 'Veggie Crispy', n: 'Aberto no prato. Pão crocante 1 min · alface crespa · tomate · hambúrguer vegetariano com cheddar · cebola crispy · maionese artesanal na tampa.' },
+      { t: 'Mini Cheese Burger', n: 'Fechado. Pão mini na chapa 2 min · mini hambúrguer com mussarela · maionese artesanal.' },
+      { t: 'Checklist combinado', n: 'Peso e medida conferidos, proteína certa, ordem no prato, pão aquecido no tempo certo, proteína pronta da chapa, maionese certa e conferência visual.' },
+      { t: 'Fixação', n: 'Revise as perguntas do slide antes de fazer a avaliação.' },
+      { t: 'Duas linhas. Um padrão de qualidade.', n: 'Dúvidas são alinhadas com o responsável de cozinha.' }
+    ],
+    perguntas: [
+      { id: 'la01', p: 'Qual é a única variável entre os quatro Big Halley (Frango, Alcatra, Fraldinha e Costela)?', o: ['A proteína principal', 'O tipo de pão', 'A salada', 'A porção de batata'], e: 'Todos compartilham a mesma base; só a proteína muda.', ref: 6 },
+      { id: 'la02', p: 'Qual é a proteína do Big Halley de Fraldinha?', o: ['2 hambúrgueres de fraldinha (223 g)', '1 fatia de fraldinha (141 g)', '2 hambúrgueres de costela (155 g)', '1 hambúrguer de fraldinha (167 g)'], e: 'Fraldinha: 223 g, 2 hambúrgueres.', ref: 6 },
+      { id: 'la03', p: 'Qual é a proteína do Big Halley de Alcatra?', o: ['Alcatra grelhada, 141 g (1 fatia)', 'Alcatra grelhada, 167 g (1 fatia)', 'Alcatra em cubos, 223 g', '2 fatias de alcatra, 155 g'], e: 'Alcatra grelhada: 141 g, 1 fatia.', ref: 6 },
+      { id: 'la04', p: 'Qual é a proteína do Big Halley de Frango?', o: ['Frango grelhado, 167 g (1 unidade)', 'Frango empanado, 141 g (1 unidade)', 'Frango em cubos, 223 g (1 medidor)', 'Frango grelhado, 155 g (2 unidades)'], e: 'Frango grelhado: 167 g, 1 unidade.', ref: 6 },
+      { id: 'la05', p: 'Qual é a proteína do Big Halley de Costela?', o: ['2 hambúrgueres de costela (155 g)', '1 hambúrguer de costela (223 g)', 'Costela desfiada (141 g)', '2 hambúrgueres de costela (223 g)'], e: 'Costela: 155 g, 2 hambúrgueres.', ref: 6 },
+      { id: 'la06', p: 'Qual é a porção de batata frita nos lanches abertos?', o: ['120 g (1 copo porcionador cheio)', '70 g (meio copo porcionador)', '300 g (1 cestinha cheia)', '150 g (1 concha grande cheia)'], e: 'Batata frita: 120 g, 1 copo porcionador cheio.', ref: 5 },
+      { id: 'la07', p: 'Qual é a medida da maionese no Big Halley?', o: ['1 concha pequena cheia (52 g)', '2 conchas pequenas (100 g)', '1 colher de sopa (15 g)', '1 copo pequeno raso (53 g)'], e: 'Maionese: 52 g, 1 concha pequena cheia.', ref: 5 },
+      { id: 'la08', p: 'Quantas fatias de tomate vão no Big Halley?', o: ['3 fatias', '2 rodelas', '4 fatias', '1 fatia'], e: 'Tomate: 74 g, 3 fatias.', ref: 5 },
+      { id: 'la09', p: 'Quanto de bacon vai no Big Halley?', o: ['3 fatias (26 g)', '2 fatias (15 g)', '1 medidor de bacon picado', '5 fatias (40 g)'], e: 'Bacon: 26 g, 3 fatias.', ref: 5 },
+      { id: 'la10', p: 'Qual é o rendimento do Big Halley de Fraldinha?', o: ['801 g', '745 g', '733 g', '860 g'], e: 'É o maior Big Halley: 801 g.', ref: 11 },
+      { id: 'la11', p: 'Qual é o rendimento do American Burger?', o: ['860 g', '801 g', '745 g', '719 g'], e: 'American Burger: 860 g.', ref: 15 },
+      { id: 'la12', p: 'O que o American Burger NÃO leva, diferente dos Big Halley?', o: ['Ervilha, milho, presunto, ovo frito e bacon', 'Alface, tomate, maionese e queijo mussarela', 'Molho barbecue, cebola crispy e batata frita', 'Pão de hambúrguer, alface e molho barbecue'], e: 'O American Burger foge do padrão Big Halley nesses itens.', ref: 15 },
+      { id: 'la13', p: 'Como vão os hambúrgueres no American Burger?', o: ['4 hambúrgueres tradicionais, dois em cada metade do pão', '2 hambúrgueres tradicionais, um em cada metade do pão', '4 hambúrgueres de fraldinha, empilhados no pão de baixo', '3 hambúrgueres tradicionais, todos na metade de baixo'], e: '4 hambúrgueres (322 g), duas unidades em cima de cada pão.', ref: 16 },
+      { id: 'la14', p: 'Qual é a cobertura do American Burger?', o: ['Molho barbecue e cebola crispy', 'Cheddar cremoso e bacon', 'Requeijão e batata palha', 'Maionese defumada e rúcula'], e: 'Barbecue sobre cada hambúrguer e, por cima, cebola crispy.', ref: 16 },
+      { id: 'la15', p: 'Nos lanches abertos, com o que começa a montagem do prato?', o: ['Base de alface na ponta do prato', 'Pão aberto no centro do prato', 'Batata frita ao lado', 'Proteína grelhada'], e: 'O primeiro elemento é a alface na ponta do prato.', ref: 17 },
+      { id: 'la16', p: 'Nos lanches abertos, qual é o último elemento antes de servir?', o: ['Batata frita ao lado do pão', 'Ovo frito sobre o queijo', 'Maionese ao lado da alface', 'Bacon em fatias sobre o pão'], e: 'A batata ao lado do pão finaliza o prato.', ref: 17 },
+      { id: 'la17', p: 'Qual passo começa a montagem de quase todos os lanches fechados?', o: ['Aquecer o pão na amassadeira por 2 minutos', 'Grelhar o hambúrguer na chapa por 2 minutos', 'Passar a maionese artesanal dentro do pacote', 'Abrir o pão com a mão e colocar no pacote'], e: 'O pão vai à amassadeira por 2 minutos e depois para o pacote.', ref: 19 },
+      { id: 'la18', p: 'Qual é a diferença entre um lanche “fechado” e um “aberto no prato”?', o: ['O fechado é montado no pacote do lanche; o aberto no prato é montado direto no prato, com o pão aquecido na chapa', 'O fechado é feito só para delivery e retirada; o aberto no prato é feito só para os clientes do salão', 'O fechado não leva maionese nem salada; o aberto no prato leva maionese na tampa e salada por cima', 'Não há diferença na montagem: muda só o nome no cardápio e a embalagem que vai para a mesa'], e: 'Fechado: pão quente no pacote. Aberto no prato: parte de baixo do pão no prato e maionese na tampa.', ref: 19 },
+      { id: 'la19', p: 'Como a proteína chega à montagem dos lanches fechados?', o: ['Pronta da chapa, já com o queijo derretido', 'Crua, para ser grelhada na hora da montagem', 'Grelhada, mas sem queijo, que entra no fim', 'Fria, retirada da câmara já porcionada'], e: 'A proteína vem pronta da chapa, com o queijo derretido.', ref: 19 },
+      { id: 'la20', p: 'Qual maionese vai no Cheese Burger de Fraldinha?', o: ['Maionese defumada', 'Maionese artesanal', 'Maionese tradicional', 'Não leva maionese'], e: 'É o lanche que finaliza com maionese defumada.', ref: 22 },
+      { id: 'la21', p: 'Qual maionese vai no Crispy Barbecue, e onde?', o: ['Tradicional, na tampa do pão', 'Artesanal, na base do pão', 'Defumada, sobre o hambúrguer', 'Não leva maionese'], e: 'Crispy Barbecue: maionese tradicional na tampa do pão.', ref: 33 },
+      { id: 'la22', p: 'Com o que se finaliza o Cheese Salada?', o: ['Ervilha', 'Bacon picado', 'Ovo', 'Batata palha'], e: 'Cheese Salada: maionese artesanal e finaliza com ervilha.', ref: 24 },
+      { id: 'la23', p: 'O que diferencia o Top Cheese Frango?', o: ['Requeijão cremoso, milho e batata palha', 'Cheddar cremoso, bacon picado e ervilha', 'Molho barbecue, cebola crispy e alface', 'Rúcula, tomate seco e maionese defumada'], e: 'Frango em cubos com mussarela, requeijão, milho e batata palha.', ref: 29 },
+      { id: 'la24', p: 'O que diferencia o Top Cheese Alcatra?', o: ['4 folhas de rúcula e 3 tomates secos', 'Alface crespa e 2 rodelas de tomate', 'Bacon e ovo', 'Barbecue e cebola crispy'], e: 'Alface americana, 4 folhas de rúcula, alcatra, maionese artesanal e 3 tomates secos.', ref: 32 },
+      { id: 'la25', p: 'Como é aquecido o pão do Crispy Barbecue, do Prime Burger e do Veggie Crispy?', o: ['Pão crocante aberto na chapa por 1 minuto', 'Pão tradicional na amassadeira por 2 minutos', 'Pão mini na chapa por 2 minutos', 'Pão crocante no forno por 3 minutos'], e: 'Nos abertos no prato com pão crocante: chapa por 1 minuto.', ref: 33 },
+      { id: 'la26', p: 'No Cheddar Bacon Crispy, o que cobre a tampa do pão?', o: ['Maionese, cheddar cremoso e cebola crispy', 'Molho barbecue, cebola crispy e bacon', 'Requeijão cremoso, milho e batata palha', 'Maionese defumada, alface e tomate seco'], e: 'A tampa leva maionese, cheddar cremoso e cebola crispy.', ref: 37 },
+      { id: 'la27', p: 'Como é aquecido o pão do Mini Cheese Burger?', o: ['Pão mini na chapa por 2 minutos', 'Na amassadeira por 2 minutos', 'Na chapa por 1 minuto, aberto', 'Não precisa aquecer'], e: 'Mini Cheese Burger: pão mini na chapa por 2 minutos.', ref: 40 },
+      { id: 'la28', p: 'Com o que se finaliza o Cheese Frango Crocante?', o: ['Cebola crispy', 'Batata palha', 'Ervilha', 'Tomate seco'], e: 'Maionese artesanal, bacon picado e finaliza com cebola crispy.', ref: 35 },
+      { id: 'la29', p: 'Quantas receitas tem o cardápio da linha Cheese Burger (Parte 2)?', o: ['20', '15', '12', '25'], e: 'São 20 receitas, do Cheese Burger ao Mini Cheese Burger.', ref: 20 },
+      { id: 'la30', p: 'No Cheese Salada Egg, quando entra o ovo?', o: ['Depois do hambúrguer, antes da maionese', 'Por último, depois da ervilha', 'Antes da alface', 'O Cheese Salada Egg não leva ovo'], e: 'Sequência: hambúrguer com queijo e presunto, ovo, maionese artesanal e ervilha.', ref: 25 },
+      { id: 'la31', p: 'Como é montado o Duplo Burger Cheddar?', o: ['Alface crespa, tomate e dois hambúrgueres com uma fatia de cheddar cada', 'Alface americana e dois hambúrgueres com mussarela, com maionese defumada', 'Um hambúrguer com duas fatias de cheddar, bacon picado e cebola crispy', 'Dois hambúrgueres de fraldinha com cheddar cremoso e molho barbecue'], e: 'Duplo Burger Cheddar: alface crespa, 2 rodelas de tomate, 2 hambúrgueres com cheddar e maionese artesanal.', ref: 28 },
+      { id: 'la32', p: 'Como é servido o Cheese Frango Empanado?', o: ['Aberto no prato, com maionese artesanal na tampa', 'Fechado no pacote, com maionese defumada', 'Fechado no pacote, sem maionese', 'Aberto no prato, com barbecue na tampa'], e: 'Pão aberto na chapa, alface americana, frango com mussarela e maionese artesanal na tampa.', ref: 30 }
+    ]
+  },
+  {
+    id: 'fritas',
+    curto: 'Batata Frita',
+    titulo: 'Porções de Batata Frita',
+    sub: 'Peso de cada porção, a ficha da Fritas Especial e o padrão de apresentação.',
+    area: 'Cozinha',
+    capa: 'slides/fritas/01.jpg',
+    porTentativa: 10,
+    slides: [
+      { t: 'Porções de batata frita', n: 'Fichas técnicas das porções e apresentação das batatas fritas.' },
+      { t: 'Objetivos do curso', n: 'Peso exato de cada linha, quando a porção leva complementos, o mesmo padrão nos Executivos e Lanches Abertos, e conferência na balança.' },
+      { t: 'Porções de batata frita', n: 'Pratos Kids 70 g · Fritas Individual 120 g · Fritas Média 300 g · Fritas Especial 300 g + complementos · Executivos e Lanches Abertos (Halley) 120 g.' },
+      { t: 'Pratos Kids e Fritas Individual', n: 'Kids: 70 g, só no cardápio infantil. Individual: 120 g, o mesmo peso usado nos Executivos e nos Lanches Abertos.' },
+      { t: 'Fritas Média e Fritas Especial', n: 'Média: 300 g, só batata. Especial: a mesma base de 300 g com cheddar, cebola e bacon.' },
+      { t: 'Ficha técnica · Fritas Especial', n: 'Batata 300 g · cheddar 60 g · cebola 35 g · bacon 60 g. Rendimento total 455 g. Batata na base, cheddar, cebola e bacon por cima.' },
+      { t: 'Batata nos Executivos e Lanches Abertos', n: '120 g em todos os Pratos Executivos e em todos os Lanches Abertos da linha Halley. É a mesma porção da Fritas Individual.' },
+      { t: 'Padrão de apresentação', n: 'Cestinha sobre papel personalizado da casa · pesagem de 120 g antes de servir · saquinho de papel para a apresentação avulsa/individual.' },
+      { t: 'Checklist de conferência', n: 'Kids 70 g · Individual e Executivos/Halley 120 g · Média 300 g sem complementos · Especial com 4 componentes · balança na dúvida · apresentação conforme o pedido.' },
+      { t: 'Fixação', n: 'Revise as perguntas do slide antes de fazer a avaliação.' },
+      { t: 'O peso certo não é no olho. É na balança.', n: 'Dúvidas são alinhadas com o responsável de cozinha.' }
+    ],
+    perguntas: [
+      { id: 'fi01', p: 'Qual é o peso da batata frita dos Pratos Kids?', o: ['70 g', '120 g', '50 g', '100 g'], e: 'Pratos Kids: 70 g, a menor porção da casa.', ref: 3 },
+      { id: 'fi02', p: 'Qual é o peso da Fritas Individual?', o: ['120 g', '70 g', '150 g', '300 g'], e: 'Fritas Individual: 120 g.', ref: 3 },
+      { id: 'fi03', p: 'Qual é o peso da Fritas Média?', o: ['300 g', '200 g', '250 g', '120 g'], e: 'Fritas Média: 300 g, só batata.', ref: 3 },
+      { id: 'fi04', p: 'Quanto de batata acompanha os Pratos Executivos e os Lanches Abertos (Halley)?', o: ['120 g, igual à Fritas Individual', '70 g, igual aos Pratos Kids', '300 g, igual à Fritas Média', '150 g, porção própria'], e: 'É a mesma porção de 120 g da Fritas Individual.', ref: 7 },
+      { id: 'fi05', p: 'Qual porção tem o mesmo peso da batata dos Lanches Abertos Halley?', o: ['Fritas Individual', 'Fritas Média', 'Pratos Kids', 'Fritas Especial'], e: 'Fritas Individual e Halley: 120 g.', ref: 3 },
+      { id: 'fi06', p: 'Quais são os complementos da Fritas Especial, além da batata?', o: ['Cheddar, cebola e bacon', 'Cheddar, catupiry e calabresa', 'Bacon, ovo e cebola crispy', 'Maionese, cheddar e salsinha'], e: 'Fritas Especial: batata, cheddar, cebola e bacon.', ref: 6 },
+      { id: 'fi07', p: 'Qual é o peso total da Fritas Especial, já com os complementos?', o: ['455 g', '300 g', '400 g', '520 g'], e: '300 + 60 + 35 + 60 = 455 g.', ref: 6 },
+      { id: 'fi08', p: 'Quanto de cheddar e de bacon vai na Fritas Especial?', o: ['60 g de cada', '35 g de cada', '100 g de cada', '60 g de cheddar e 35 g de bacon'], e: 'Cheddar 60 g e bacon 60 g. A cebola é que tem 35 g.', ref: 6 },
+      { id: 'fi09', p: 'Quanto de cebola vai na Fritas Especial?', o: ['35 g', '60 g', '20 g', '50 g'], e: 'Cebola: 35 g.', ref: 6 },
+      { id: 'fi10', p: 'Qual é a ordem de montagem da Fritas Especial?', o: ['Batata na base; cheddar, cebola e bacon por cima', 'Bacon no fundo, batata e cheddar por cima', 'Cheddar no fundo e batata por cima', 'Tudo misturado na cuba antes de servir'], e: 'Batata na base e a cobertura por cima, para sair igual em qualquer turno.', ref: 6 },
+      { id: 'fi11', p: 'Fritas Média e Fritas Especial partem de quanto de batata?', o: ['300 g', '120 g', '455 g', '250 g'], e: 'As duas partem de 300 g de batata.', ref: 5 },
+      { id: 'fi12', p: 'A Fritas Média leva complementos?', o: ['Não, é só batata', 'Sim, leva cheddar', 'Sim, leva bacon', 'Só quando é para viagem'], e: 'Fritas Média: porção intermediária, só batata, sem complementos.', ref: 5 },
+      { id: 'fi13', p: 'Ficou em dúvida sobre o peso da porção. O que fazer?', o: ['Pesar na balança', 'Completar a cestinha até a borda', 'Colocar um pouco a mais, por garantia', 'Perguntar ao cliente'], e: 'O peso certo não é no olho. É na balança.', ref: 9 },
+      { id: 'fi14', p: 'Como é feita a apresentação avulsa/individual da batata?', o: ['No saquinho de papel', 'Na cestinha, sem papel', 'Em prato raso', 'Em pote com tampa'], e: 'Saquinho de papel para a apresentação avulsa/individual.', ref: 8 },
+      { id: 'fi15', p: 'Como a batata é apresentada na cestinha?', o: ['Sobre o papel personalizado da casa', 'Direto na cestinha, sem papel', 'Sobre guardanapo comum', 'Em pote plástico dentro da cestinha'], e: 'Cestinha sobre o papel personalizado da casa.', ref: 8 }
+    ]
+  },
+  {
+    id: 'sobremesas',
+    curto: 'Sobremesas',
+    titulo: 'Sobremesas',
+    sub: 'Fichas técnicas e montagem das 9 sobremesas da casa: taças, sundaes, petit gateau e pudim.',
+    area: 'Cozinha',
+    capa: 'slides/sobremesas/01.jpg',
+    porTentativa: 15,
+    slides: [
+      { t: 'Sobremesas', n: 'Módulo de processos e receitas das sobremesas. Conteúdo técnico da PlanoA Consultoria.' },
+      { t: 'Objetivos do curso', n: 'Peso e medida caseira, ordem de montagem, elementos que se repetem entre as taças, apresentação e as fichas das 9 sobremesas.' },
+      { t: 'Cardápio de sobremesas', n: '9 sobremesas: Banana Split 331 g · Colegial 105 g · Petit Gateau 179 g · Pudim 137 g · Sundae Collors 257 g · Chocoball 252 g · Peanut 255 g · Taça da Felicidade 333 g · Happy Kids 158 g.' },
+      { t: 'Ficha técnica · Banana Split', n: 'Farofa doce, 1 banana, 3 bolas (creme, morango e chocolate), caldas de chocolate, morango e caramelo, chantilly, 3 cerejas e 2 tubetes. Rendimento 331 g.' },
+      { t: 'Montagem · Banana Split', n: 'Farofa no fundo → banana cortada ao meio → 3 bolas lado a lado → caldas → chantilly e cereja em cada bola → dois tubetes, um de cada lado da bola de chocolate.' },
+      { t: 'Ficha técnica · Colegial', n: 'Calda de caramelo, 1½ bola de creme (90 g), farofa doce e 1 cereja. Rendimento 105 g.' },
+      { t: 'Montagem · Colegial', n: 'Caramelo por dentro da taça → 2 bolas de creme → farofa → meia bola → caramelo → cereja.' },
+      { t: 'Ficha técnica · Petit Gateau', n: '1 petit gateau, 1 bola de creme e calda de chocolate. Rendimento 179 g.' },
+      { t: 'Montagem · Petit Gateau', n: 'Micro-ondas por 30 segundos → prato → sorvete ao lado → calda de chocolate sobre os dois.' },
+      { t: 'Ficha técnica · Pudim de Leite', n: '1 pudim e calda de caramelo. Rendimento 137 g.' },
+      { t: 'Montagem · Pudim de Leite', n: 'Retirar da embalagem → recipiente padrão → calda de caramelo.' },
+      { t: 'Ficha técnica · Sundae Collors', n: 'Creme de avelã e confeti collor na borda, calda de frutas vermelhas, 2½ bolas de morango, chantilly, mini confeti, morango e tubete. Rendimento 257 g.' },
+      { t: 'Montagem · Sundae Collors', n: 'Avelã na borda (por fora) → confeti collor → calda de frutas vermelhas do fundo às bordas → sorvete de morango → chantilly → mini confeti → morango em 4 partes → tubete na lateral.' },
+      { t: 'Ficha técnica · Sundae Chocoball', n: 'Creme de avelã e chocoball na borda, calda de chocolate, 2½ bolas de chocolate, chantilly, chocoball, cereja e tubete. Rendimento 252 g.' },
+      { t: 'Montagem · Sundae Chocoball', n: 'Avelã na borda → chocoball → calda de chocolate → sorvete de chocolate → chantilly e cereja → chocoball polvilhado → tubete.' },
+      { t: 'Ficha técnica · Sundae Peanut', n: 'Creme de avelã e amendoim triturado na borda, cobertura de caramelo, 2½ bolas de creme, chantilly, amendoim, Sonho de Valsa e tubete. Rendimento 255 g.' },
+      { t: 'Montagem · Sundae Peanut', n: 'Avelã na borda → amendoim → caramelo → sorvete de creme → chantilly e Sonho de Valsa cortado ao meio → amendoim polvilhado → tubete.' },
+      { t: 'Ficha técnica · Taça da Felicidade de Morango', n: 'Camadas repetidas de creme branco, brownie picado e morango picado, ganache de chocolate, chantilly, morango e chocoball. Rendimento 333 g.' },
+      { t: 'Montagem · Taça da Felicidade de Morango', n: 'Creme branco → brownie → morango e creme branco → brownie → morango → creme branco e ganache → chantilly → morango ao meio → chocoball.' },
+      { t: 'Ficha técnica · Taça Happy Kids', n: 'Creme branco, brownie desconstruído, confeti colorido, creme preto, chantilly, cereja e mini confete. Rendimento 158 g.' },
+      { t: 'Montagem · Taça Happy Kids', n: 'Creme branco → brownie → confeti → creme branco → creme preto → chantilly → mini confete → cereja no chantilly e tubete na lateral.' },
+      { t: 'Comparativo de rendimento', n: 'O rendimento é o peso total esperado do prato pronto: referência para conferir porção e visual.' },
+      { t: 'Padrão comum às taças', n: 'Creme na borda (por fora) → decoração da borda → calda no fundo e laterais → sorvete → chantilly → decoração final → tubete na lateral → conferência visual.' },
+      { t: 'Checklist de produção', n: 'Peso conferido, bolas certas, caldas sem excesso, chantilly e decoração por último, tubetes na hora de servir, conferência visual.' },
+      { t: 'Fixação', n: 'Revise as perguntas do slide antes de fazer a avaliação.' },
+      { t: 'Peso certo. Montagem certa. Visual impecável.', n: 'Dúvidas são alinhadas com o responsável de cozinha.' }
+    ],
+    perguntas: [
+      { id: 'so01', p: 'Quantas sobremesas fazem parte da linha oficial da casa?', o: ['9', '7', '12', '5'], e: 'São 9 sobremesas, cada uma com peso e montagem próprios.', ref: 3 },
+      { id: 'so02', p: 'Quantas bolas de sorvete vão no Banana Split, e de quais sabores?', o: ['3 bolas: creme, chocolate e morango', '2 bolas: creme e chocolate', '3 bolas de creme', '4 bolas: creme, chocolate, morango e flocos'], e: 'Três bolas, uma de cada sabor, lado a lado.', ref: 4 },
+      { id: 'so03', p: 'Qual é o rendimento do Banana Split?', o: ['331 g', '333 g', '257 g', '179 g'], e: 'Banana Split: 331 g. A Taça da Felicidade é que rende 333 g.', ref: 4 },
+      { id: 'so04', p: 'Qual é o primeiro passo da montagem do Banana Split?', o: ['Farofa doce no fundo do recipiente', 'Banana cortada ao meio no fundo', 'Bola de sorvete de creme no fundo', 'Calda de chocolate por toda a taça'], e: 'A farofa vai no fundo; a banana entra em cima dela.', ref: 5 },
+      { id: 'so05', p: 'Quais caldas vão no Banana Split?', o: ['Morango, caramelo e chocolate', 'Só chocolate', 'Frutas vermelhas e caramelo', 'Nenhuma calda'], e: 'As três caldas vão por cima das bolas de sorvete.', ref: 4 },
+      { id: 'so06', p: 'Como se finaliza o Banana Split?', o: ['Dois tubetes, um de cada lado da bola de chocolate', 'Um tubete no centro, entre as três bolas de sorvete', 'Farofa doce polvilhada por cima das três bolas', 'Três cerejas no fundo e chantilly por cima de tudo'], e: 'Último passo antes de servir: dois tubetes ao lado da bola de chocolate.', ref: 5 },
+      { id: 'so07', p: 'No Colegial, qual calda decora a parte de dentro da taça?', o: ['Caramelo', 'Chocolate', 'Morango', 'Frutas vermelhas'], e: 'Colegial: taça decorada com calda de caramelo por dentro.', ref: 7 },
+      { id: 'so08', p: 'Quanto de sorvete vai no Colegial?', o: ['1½ bola de creme (90 g)', '2 bolas de chocolate', '1 bola de creme (60 g)', '3 bolas de creme'], e: 'Duas bolas e depois mais meia bola, sempre de creme.', ref: 6 },
+      { id: 'so09', p: 'Quanto tempo o petit gateau vai ao micro-ondas?', o: ['30 segundos', '1 minuto', '2 minutos', '10 segundos'], e: 'Micro-ondas por 30 segundos.', ref: 9 },
+      { id: 'so10', p: 'No Petit Gateau, onde vai a bola de sorvete?', o: ['Ao lado do petit gateau', 'Em cima do petit gateau', 'Embaixo do petit gateau', 'Em taça separada'], e: 'Sorvete de creme ao lado; calda de chocolate sobre os dois.', ref: 9 },
+      { id: 'so11', p: 'Qual calda finaliza o Pudim de Leite?', o: ['Caramelo', 'Chocolate', 'Frutas vermelhas', 'O pudim vai sem calda'], e: 'Pudim: recipiente padrão e calda de caramelo.', ref: 11 },
+      { id: 'so12', p: 'Qual sorvete vai no Sundae Collors?', o: ['Morango, 2½ bolas', 'Creme, 2 bolas', 'Chocolate, 2½ bolas', 'Morango, 3 bolas'], e: 'Sundae Collors: 149 g de sorvete de morango, 2½ bolas.', ref: 12 },
+      { id: 'so13', p: 'Como é feita a borda do Sundae Collors?', o: ['Creme de avelã por fora da taça e confeti collor', 'Calda de morango por dentro da taça e chocoball', 'Chantilly por fora da taça e mini confeti colorido', 'Creme de avelã por dentro e amendoim triturado'], e: 'Avelã por fora, com colher, e confeti collor na borda.', ref: 13 },
+      { id: 'so14', p: 'No Sundae Collors, como vai o morango?', o: ['Cortado em 4 partes', 'Inteiro', 'Cortado ao meio', 'Picado no fundo da taça'], e: 'Morango cortado em 4 partes, depois do mini confeti.', ref: 13 },
+      { id: 'so15', p: 'Quais são a calda e o sorvete do Sundae Chocoball?', o: ['Calda de chocolate e sorvete de chocolate', 'Calda de caramelo e sorvete de creme', 'Calda de frutas vermelhas e sorvete de morango', 'Calda de chocolate e sorvete de creme'], e: 'Sundae Chocoball: tudo chocolate, com chocoball na borda.', ref: 14 },
+      { id: 'so16', p: 'O que decora a borda do Sundae Peanut?', o: ['Creme de avelã e amendoim triturado', 'Creme de avelã e confeti collor', 'Calda de caramelo e chocoball', 'Chantilly e farofa doce'], e: 'Borda com creme de avelã e amendoim triturado.', ref: 16 },
+      { id: 'so17', p: 'Qual item especial vai no Sundae Peanut?', o: ['Sonho de Valsa cortado ao meio', 'Morango cortado em quatro partes', 'Cereja em calda sobre o chantilly', 'Brownie picado no fundo da taça'], e: 'Depois do chantilly entra o Sonho de Valsa cortado ao meio.', ref: 17 },
+      { id: 'so18', p: 'Qual é o rendimento da Taça da Felicidade de Morango?', o: ['333 g', '331 g', '158 g', '255 g'], e: 'Taça da Felicidade de Morango: 333 g.', ref: 18 },
+      { id: 'so19', p: 'Quantas camadas de creme branco tem a Taça da Felicidade de Morango?', o: ['3', '2', '1', '4'], e: 'O creme branco aparece três vezes na ficha: são camadas repetidas.', ref: 18 },
+      { id: 'so20', p: 'Com o que se finaliza a Taça da Felicidade de Morango?', o: ['Chocoball', 'Cereja em calda', 'Tubete', 'Confeti colorido'], e: 'Último passo: chocoball sobre o chantilly e o morango.', ref: 19 },
+      { id: 'so21', p: 'Como se finaliza a Taça Happy Kids?', o: ['Cereja em cima do chantilly e tubete na lateral', 'Mini confete polvilhado por cima do creme preto', 'Chocoball polvilhado sobre o chantilly', 'Brownie desconstruído por cima de tudo'], e: 'Mini confete e, por fim, a cereja e o tubete.', ref: 21 },
+      { id: 'so22', p: 'Qual é o rendimento da Taça Happy Kids?', o: ['158 g', '105 g', '179 g', '257 g'], e: 'Taça Happy Kids: 158 g.', ref: 20 },
+      { id: 'so23', p: 'Qual sobremesa tem o menor rendimento?', o: ['Colegial (105 g)', 'Pudim de Leite (137 g)', 'Taça Happy Kids (158 g)', 'Petit Gateau (179 g)'], e: 'O Colegial é a menor: 105 g.', ref: 22 },
+      { id: 'so24', p: 'No padrão das taças, onde vai o creme da borda?', o: ['Na parte de fora da taça', 'No fundo, por dentro', 'Só no topo do sorvete', 'Em pote separado'], e: 'Creme ou calda na borda, pela parte de fora.', ref: 23 },
+      { id: 'so25', p: 'No padrão das taças, qual é a ordem certa?', o: ['Borda → calda no fundo → sorvete → chantilly → decoração → tubete', 'Sorvete → borda → chantilly → calda no fundo → decoração → tubete', 'Calda no fundo → chantilly → sorvete → borda → tubete → decoração', 'Tubete → sorvete → calda no fundo → borda → decoração → chantilly'], e: 'Borda, calda, sorvete, chantilly, decoração final, tubete e conferência visual.', ref: 23 },
+      { id: 'so26', p: 'Quando o chantilly e a decoração são aplicados?', o: ['Por último', 'Primeiro, no fundo da taça', 'Antes do sorvete', 'Só em pedidos de delivery'], e: 'Checklist: chantilly e decoração aplicados por último.', ref: 24 },
+      { id: 'so27', p: 'Quando os tubetes e itens crocantes são adicionados?', o: ['Na hora de servir', 'Na pré-produção do turno', 'Antes do sorvete', 'No fundo da taça'], e: 'Tubetes e crocantes entram na hora de servir.', ref: 24 },
+      { id: 'so28', p: 'O que é feito antes de servir qualquer prato ou taça?', o: ['Conferência visual', 'Uma segunda camada de calda', 'Pesagem do cliente', 'Mais uma bola de sorvete'], e: 'Prato ou taça conferido visualmente antes de servir.', ref: 24 }
+    ]
+  },
+  {
+    id: 'fritadeira',
+    curto: 'Fritadeira',
+    titulo: 'Filtragem da Fritadeira',
+    sub: 'POP de cozinha: duas filtragens por dia e a limpeza do equipamento, com segurança.',
+    area: 'Cozinha',
+    capa: 'slides/fritadeira/01.jpg',
+    porTentativa: 15,
+    slides: [
+      { t: 'Filtragem da fritadeira', n: 'Procedimento padrão de filtragem do óleo e limpeza do equipamento. As fotos são da nossa própria cozinha.' },
+      { t: 'As 4 regras de ouro', n: 'Termostato no 0 · óleo abaixo de 100 °C · duas filtragens por dia (após o almoço e à noite, na finalização do turno) · limpeza só no dia seguinte, pela limpeza pesada. Sem exceção: se alguma não puder ser cumprida, não inicie e chame o líder de turno.' },
+      { t: 'EPI e materiais', n: 'Ninguém inicia sem as duas luvas térmicas. Separe todos os materiais antes de começar, para não sair de perto da fritadeira no meio do processo.' },
+      { t: 'Passo 1 · Zerar o termostato', n: 'O ponteiro precisa estar exatamente no 0, e não apenas na temperatura mais baixa.' },
+      { t: 'Passo 2 · Óleo abaixo de 100 °C', n: 'O termômetro infravermelho mede a superfície para onde aponta. Mire no óleo, não no inox. Leitura de 100 °C ou mais: espere e meça de novo.' },
+      { t: 'Passos 3 e 4 · Preparar a filtragem', n: 'Vista o EPI e isole a área. Posicione a bandeja, confira tela e mangueira e encaixe o tubo extensor apontado para a bandeja. Luva térmica nas duas mãos o tempo todo. O elemento filtrante precisa ser novo: saturado ou ausente, não inicie e avise o líder.' },
+      { t: 'Passos 5 e 6 · Drenar e retirar a grade', n: 'Abra o registro de dreno pela alavanca embaixo da fritadeira. A grade sai com a luva térmica: apoie em local seguro, longe da passagem.' },
+      { t: 'Passos 7 e 8 · Lavar e escovar a cuba', n: 'Caneta de retorno sempre para dentro da cuba. O sensor são as hastes presas ao tubo central: bater ou forçar o sensor desregula o termostato.' },
+      { t: 'Passo 9 · Devolver o óleo à cuba', n: 'Feche o registro de dreno antes de devolver o óleo: aberto, o óleo volta para a bandeja e transborda. Nível certo entre MIN e MAX; abaixo do MIN, complete com óleo novo.' },
+      { t: 'Passo 10 · Finalizar', n: 'Desligue a bomba e retire o tubo · descarte a borra · troque o elemento filtrante saturado e confira se o novo ficou instalado · após o almoço, termostato volta à temperatura de trabalho; à noite, fica no 0 · preencha o registro diário.' },
+      { t: 'Dia seguinte · Limpeza do equipamento', n: 'Feita pelo colaborador da limpeza pesada, o que garante com folga as 2 horas mínimas de resfriamento. Ele confere o termostato no 0 e o filtro novo instalado antes de começar. Oxidação ou vazamento nas conexões: avise o líder.' },
+      { t: 'Proibido', n: 'Também é proibido arrastar a bandeja cheia de óleo quente. Derramamento: isole a área, não pise no óleo e use material absorvente antes de lavar o piso. Queimadura: água corrente fria por 20 minutos, sem pomadas, e avise o líder.' },
+      { t: 'Resumo · A filtragem em 10 passos', n: 'Revise os 10 passos. Em seguida, faça a avaliação.' }
+    ],
+    perguntas: [
+      { id: 'fr01', p: 'Antes de filtrar ou limpar, em que posição fica o termostato?', o: ['Exatamente no 0', 'Na temperatura mais baixa', 'Na temperatura de trabalho', 'Em qualquer posição, se a bomba estiver desligada'], e: 'O ponteiro precisa estar exatamente no 0, e não apenas na temperatura mais baixa.', ref: 4 },
+      { id: 'fr02', p: 'Qual é a temperatura máxima do óleo para iniciar a filtragem?', o: ['Abaixo de 100 °C', 'Abaixo de 150 °C', 'Abaixo de 180 °C', 'Abaixo de 60 °C'], e: 'Regra de ouro: óleo abaixo de 100 °C, medido com o termômetro infravermelho.', ref: 2 },
+      { id: 'fr03', p: 'Como medir corretamente a temperatura do óleo?', o: ['Termômetro infravermelho mirando na superfície do óleo', 'Termômetro infravermelho mirando na parede de inox', 'Pelo visor do termostato', 'Encostando a luva térmica na borda da cuba'], e: 'O infravermelho mede a superfície para onde aponta. Mirar no inox muda a leitura.', ref: 5 },
+      { id: 'fr04', p: 'O termômetro marcou 104 °C. O que fazer?', o: ['Esperar e medir de novo', 'Começar a filtragem, porque está perto de 100 °C', 'Ligar a bomba para o óleo esfriar mais rápido', 'Acrescentar óleo frio para baixar a temperatura'], e: 'Leitura de 100 °C ou mais: espere e meça de novo.', ref: 5 },
+      { id: 'fr25', p: 'Quantas filtragens são feitas por dia, e quando?', o: ['Duas: após o almoço e à noite, na finalização do turno', 'Uma, no fim do dia', 'Uma por turno, sem horário definido', 'Três: na abertura, após o almoço e no fechamento'], e: 'Duas filtragens por dia: após o almoço e à noite, na finalização do turno.', ref: 2 },
+      { id: 'fr26', p: 'Quem faz a limpeza do equipamento, e quando?', o: ['O colaborador da limpeza pesada, no dia seguinte', 'O fritador, logo após a filtragem da noite', 'O líder de turno, após o almoço', 'Qualquer colaborador, 30 minutos depois de desligar'], e: 'A limpeza fica com a limpeza pesada no dia seguinte.', ref: 11 },
+      { id: 'fr27', p: 'Por que a limpeza do equipamento fica para o dia seguinte?', o: ['Para garantir com folga as 2 horas mínimas de resfriamento', 'Porque o produto de limpeza só age no óleo do dia anterior', 'Para não atrasar o fechamento do caixa', 'Porque a fritadeira fica ligada durante a noite'], e: 'Deixar para o dia seguinte garante com folga as 2 horas mínimas de resfriamento.', ref: 11 },
+      { id: 'fr07', p: 'Qual conjunto corresponde ao EPI obrigatório?', o: ['Luva térmica de cano longo nas duas mãos, avental impermeável com manga longa e calçado fechado antiderrapante', 'Luva térmica de cano curto em uma das mãos, avental de tecido sem manga e calçado fechado comum', 'Luva de borracha comum nas duas mãos, touca descartável, avental de pano e calçado antiderrapante', 'Óculos de proteção, luva descartável nas duas mãos, avental de tecido e calçado fechado comum'], e: 'Os três itens são obrigatórios. Ninguém inicia sem as duas luvas térmicas.', ref: 3 },
+      { id: 'fr28', p: 'Durante a filtragem, quando se usa a luva térmica?', o: ['Nas duas mãos, durante todo o processo', 'Só durante a drenagem do óleo', 'Em uma das mãos, a que segura a caneta', 'Só se o óleo estiver acima de 100 °C'], e: 'Luva térmica nas duas mãos durante todo o processo.', ref: 6 },
+      { id: 'fr29', p: 'Antes de encaixar o tubo extensor, o que precisa ser conferido na bandeja?', o: ['Se o elemento filtrante é novo', 'Se ainda tem óleo da filtragem anterior', 'Se o termostato está na temperatura de trabalho', 'Se a caneta de retorno está ligada'], e: 'Olhe a bandeja: o elemento filtrante precisa ser novo.', ref: 6 },
+      { id: 'fr30', p: 'O elemento filtrante está saturado ou ausente. O que fazer?', o: ['Não iniciar e avisar o líder', 'Filtrar assim mesmo e trocar no fim', 'Usar papel toalha no lugar do filtro', 'Filtrar só metade do óleo'], e: 'Sem filtro novo, não inicie.', ref: 6 },
+      { id: 'fr09', p: 'Para onde o tubo extensor de dreno deve ficar apontado?', o: ['Para a bandeja de filtragem', 'Para o ralo do piso', 'Para dentro da cuba', 'Para um balde ao lado da fritadeira'], e: 'O tubo extensor é encaixado apontado para a bandeja.', ref: 6 },
+      { id: 'fr10', p: 'Como o óleo é drenado para a bandeja?', o: ['Abrindo o registro de dreno pela alavanca embaixo da fritadeira', 'Ligando a bomba e usando a caneta de retorno apontada para fora', 'Inclinando a fritadeira para a frente, com as luvas térmicas', 'Retirando a grade de apoio dos cestos e o sensor de temperatura'], e: 'Passo 5: abra o registro de dreno pela alavanca e deixe todo o óleo descer.', ref: 7 },
+      { id: 'fr11', p: 'Qual é o cuidado com a caneta de retorno durante a lavagem?', o: ['Manter sempre apontada para dentro da cuba e não forçar o sensor', 'Apontar para o piso em volta para enxaguar a área da fritadeira', 'Usar o jato da caneta para bater a borra presa no sensor', 'Desligar a bomba antes de usar a caneta, para não espirrar óleo'], e: 'Caneta sempre para dentro da cuba. Apontar para fora é proibido.', ref: 8 },
+      { id: 'fr12', p: 'Por que não se deve bater ou forçar o sensor de temperatura?', o: ['Porque desregula o termostato', 'Porque entope o elemento filtrante', 'Porque desliga a bomba automaticamente', 'Porque escurece o óleo'], e: 'O sensor são as hastes presas ao tubo central. Bater ou forçar desregula o termostato.', ref: 8 },
+      { id: 'fr13', p: 'Antes de devolver o óleo filtrado à cuba, o que precisa estar fechado?', o: ['O registro de dreno', 'A tampa da bandeja', 'O termostato', 'A caneta de retorno'], e: 'Com o registro aberto, o óleo volta direto para a bandeja e transborda.', ref: 9 },
+      { id: 'fr14', p: 'Qual é o nível certo do óleo depois da filtragem?', o: ['Entre as marcas MIN e MAX', 'Exatamente na marca MAX', 'Até a borda da cuba', 'Logo abaixo da marca MIN'], e: 'Nível certo: entre as marcas MIN e MAX.', ref: 9 },
+      { id: 'fr15', p: 'O óleo ficou abaixo da marca MIN. O que fazer?', o: ['Completar com óleo novo', 'Seguir assim até a próxima filtragem', 'Completar com a borra da bandeja', 'Ligar o termostato para o óleo expandir'], e: 'Abaixo do MIN? Complete com óleo novo.', ref: 9 },
+      { id: 'fr16', p: 'Como reconhecer o elemento filtrante que precisa ser trocado?', o: ['Fica cinza e com marcas de borra', 'Fica branco e seco', 'Fica mole e transparente', 'Nunca precisa trocar, basta lavar'], e: 'Saturado: cinza e com marcas de borra. É hora de trocar.', ref: 10 },
+      { id: 'fr31', p: 'Qual é a ordem certa da finalização?', o: ['Desligar a bomba e tirar o tubo → descartar a borra → trocar o filtro → ajustar o termostato → registrar', 'Ajustar o termostato → desligar a bomba e tirar o tubo → registrar → trocar o filtro → descartar a borra', 'Trocar o filtro → ajustar o termostato → desligar a bomba e tirar o tubo → registrar → descartar a borra', 'Registrar → descartar a borra → desligar a bomba e tirar o tubo → ajustar o termostato → trocar o filtro'], e: 'Passo 10: bomba e tubo, bandeja e borra, filtro, termostato e registro diário.', ref: 10 },
+      { id: 'fr32', p: 'Na finalização, como fica o termostato?', o: ['Após o almoço, volta à temperatura de trabalho; à noite, fica no 0', 'Sempre volta à temperatura de trabalho', 'Sempre fica no 0 até o dia seguinte', 'Após o almoço fica no 0; à noite volta à temperatura de trabalho'], e: 'Após o almoço a fritadeira volta a trabalhar; à noite fica no 0 até a limpeza do dia seguinte.', ref: 10 },
+      { id: 'fr33', p: 'Depois de trocar o elemento filtrante, o que precisa ser conferido?', o: ['Se o filtro novo ficou instalado na máquina', 'Se o óleo ficou acima da marca MAX da cuba', 'Se a bomba continua ligada depois da troca', 'Se a grade de apoio ficou fora da cuba'], e: 'Sem o filtro novo instalado, não dá para iniciar a próxima filtragem nem a limpeza.', ref: 10 },
+      { id: 'fr36', p: 'Antes de começar a limpeza do dia seguinte, o que o colaborador confere?', o: ['Termostato no 0 desde o fechamento e filtro novo instalado', 'Se o óleo ainda está acima de 100 °C e a bomba ligada', 'Se a bandeja ficou cheia com o óleo da filtragem da noite', 'Só se o piso em volta da fritadeira está seco e limpo'], e: 'Termostato no 0 desde o fechamento do turno e filtro novo instalado. Sem filtro, não inicie.', ref: 11 },
+      { id: 'fr23', p: 'Na limpeza, você encontra oxidação ou vazamento nas conexões. O que fazer?', o: ['Avisar o líder', 'Apertar a conexão com uma ferramenta', 'Ignorar, se não estiver pingando óleo', 'Vedar com fita isolante'], e: 'Oxidação ou vazamento nas conexões: avise o líder.', ref: 11 },
+      { id: 'fr34', p: 'Qual é a diferença entre a filtragem e a limpeza do equipamento?', o: ['A filtragem é feita duas vezes por dia com o óleo abaixo de 100 °C; a limpeza é no dia seguinte, pela limpeza pesada', 'São o mesmo procedimento com nomes diferentes: os dois são feitos pelo fritador no fim do turno', 'A limpeza é feita com o óleo ainda quente, para soltar a borra; a filtragem é feita com o óleo frio', 'A filtragem é feita uma vez por semana pelo líder; a limpeza é feita todos os dias após o almoço'], e: 'São processos diferentes, em momentos e com responsáveis diferentes.', ref: 11 },
+      { id: 'fr18', p: 'Qual destas ações é PROIBIDA?', o: ['Ligar o termostato com a cuba vazia', 'Medir a temperatura com o termômetro infravermelho', 'Isolar a área em frente à fritadeira', 'Registrar a filtragem na planilha'], e: 'Ligar o termostato com a cuba vazia está na lista do que é proibido.', ref: 12 },
+      { id: 'fr37', p: 'Além da lista do slide, o que também é proibido?', o: ['Arrastar a bandeja cheia de óleo quente', 'Usar o termômetro infravermelho', 'Recolocar a grade antes de devolver o óleo', 'Preencher o registro diário'], e: 'Também é proibido arrastar a bandeja cheia de óleo quente.', ref: 12 },
+      { id: 'fr19', p: 'Primeiros socorros em caso de queimadura:', o: ['Água corrente fria por 20 minutos, sem pomadas, e avisar o líder na hora', 'Passar pomada na hora, cobrir com papel toalha e avisar o líder no fim', 'Gelo direto na pele por 5 minutos e voltar ao trabalho com luva', 'Passar óleo frio ou manteiga na área atingida e cobrir com pano'], e: 'Água corrente fria por 20 minutos, sem pomadas, e avise o líder na hora.', ref: 12 },
+      { id: 'fr20', p: 'Derramou óleo no chão. Qual é o procedimento?', o: ['Isolar a área, não pisar no óleo e usar material absorvente antes de lavar o piso', 'Jogar água na hora para diluir o óleo e puxar tudo para o ralo com o rodo', 'Arrastar a bandeja até a mancha para recolher o óleo derramado com a caneta', 'Passar pano seco por cima da mancha e seguir o trabalho normalmente'], e: 'Isole, não pise, absorva e só depois lave o piso.', ref: 12 },
+      { id: 'fr21', p: 'Uma das 4 regras de ouro não pode ser cumprida. O que fazer?', o: ['Não iniciar e chamar o líder de turno', 'Iniciar com mais cuidado que o normal', 'Pular essa etapa e anotar na planilha', 'Pedir para um colega fazer no seu lugar'], e: 'As regras de ouro não têm exceção.', ref: 2 },
+      { id: 'fr35', p: 'Qual é a ordem dos cinco primeiros passos da filtragem?', o: ['Termostato no 0 → óleo abaixo de 100 °C → EPI e área isolada → filtro novo, bandeja e tubo → abrir o registro', 'EPI e área isolada → abrir o registro → termostato no 0 → filtro novo, bandeja e tubo → medir o óleo', 'Filtro novo, bandeja e tubo → abrir o registro → termostato no 0 → EPI e área isolada → medir o óleo', 'Medir o óleo → abrir o registro → EPI e área isolada → termostato no 0 → filtro novo, bandeja e tubo'], e: 'Passos 1 a 5: termostato, temperatura, EPI, filtro novo com bandeja e tubo, drenagem.', ref: 13 }
+    ]
+  }
+];
+// Caminho padrão das imagens: slides/<id do curso>/01.jpg, 02.jpg...
+CURSOS.forEach(c => c.slides.forEach((s, i) => { if (!s.img) s.img = `slides/${c.id}/${String(i + 1).padStart(2, '0')}.jpg`; }));
+
+</script>
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — cole aqui a URL e a chave "anon public" do Supabase.
+   Com os dois campos vazios, a plataforma roda em modo demonstração
+   (dados salvos só no aparelho).
+   ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL: '',
+  SUPABASE_ANON_KEY: ''
+};
+const TEMPO_POR_PERGUNTA = 30;   // segundos
+const APROVACAO = 0.8;           // 80% de acertos
+const SETORES = ['Salão', 'Cozinha', 'Recepção / Caixa', 'Delivery', 'Gerência'];
+
+/* ------------------------------------------------------------------ util */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Math.round(n || 0).toLocaleString('pt-BR');
+const pct = (a, t) => t ? Math.round(a / t * 100) : 0;
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const curso = id => CURSOS.find(c => c.id === id);
+const primeiroNome = n => String(n || '').split(' ')[0];
+const dataBR = d => { try { return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }); } catch { return ''; } };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } },
+  del(k) { try { localStorage.removeItem(k); } catch { } }
+};
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now());
+async function hash(s) {
+  try {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('drive-' + s));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  } catch { let h = 0; for (const c of 'drive-' + s) h = (h * 31 + c.charCodeAt(0)) | 0; return 'h' + h; }
+}
+
+/* ------------------------------------------------------------- dados */
+const MODO_DEMO = !(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+
+const supaApi = {
+  async rpc(fn, args) {
+    const base = CONFIG.SUPABASE_URL.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+    let res;
+    try {
+      res = await fetch(`${base}/rest/v1/rpc/${fn}`, {
+        method: 'POST',
+        headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args || {})
+      });
+    } catch { throw new Error('Sem conexão com o servidor. Confira a internet e tente de novo.'); }
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new Error((body && (body.message || body.hint)) || 'Erro no servidor (' + res.status + ').');
+    return body;
+  },
+  registrar: (d) => supaApi.rpc('trein_registrar', { p_nome: d.nome, p_setor: d.setor, p_pin: d.pin, p_codigo: d.codigo }),
+  entrar: (d) => supaApi.rpc('trein_entrar', { p_nome: d.nome, p_pin: d.pin }),
+  salvar: (tk, t) => supaApi.rpc('trein_salvar_tentativa', { p_token: tk, p_curso: t.curso, p_acertos: t.acertos, p_total: t.total, p_pontos: t.pontos, p_respostas: t.respostas }),
+  ranking: (c) => supaApi.rpc('trein_ranking', { p_curso: c || null }),
+  minhas: (tk) => supaApi.rpc('trein_minhas_tentativas', { p_token: tk }),
+  painel: (s) => supaApi.rpc('trein_painel', { p_senha: s }),
+  redefinirPin: (s, id, pin) => supaApi.rpc('trein_redefinir_pin', { p_senha: s, p_participante: id, p_pin: pin })
+};
+
+/* Modo demonstração: mesmas funções, guardadas no aparelho. */
+const DEMO_KEY = 'academia-drive-demo-v1';
+const DEMO_CODIGO = '1978', DEMO_GESTOR = 'gestor1978';
+let demoMem = null;
+function demoDb() {
+  if (demoMem) return demoMem;
+  demoMem = store.get(DEMO_KEY, null);
+  if (!demoMem) {
+    // Participantes de exemplo, marcados como tal, para o ranking não começar vazio.
+    const ex = [['Ana (exemplo)', 'Salão', 13, 11240, 'fritadeira', 11, 8020], ['Bruno (exemplo)', 'Cozinha', 10, 7350, 'fritadeira', 15, 13110], ['Carla (exemplo)', 'Recepção / Caixa', 14, 12480, null], ['Diego (exemplo)', 'Cozinha', 9, 6110, 'fritadeira', 12, 9400]];
+    demoMem = { participantes: [], tentativas: [] };
+    const agora = Date.now();
+    ex.forEach(([nome, setor, a1, p1, c2, a2, p2], i) => {
+      const id = uid();
+      demoMem.participantes.push({ id, nome, nome_norm: norm(nome), setor, pin_hash: '-', token: uid(), criado_em: new Date(agora - 864e5 * (6 - i)).toISOString(), exemplo: true });
+      const resp = (qs, ac) => qs.slice(0, 15).map((q, k) => ({ q: q.id, ok: k < ac }));
+      demoMem.tentativas.push({ participante_id: id, curso: 'atendimento', acertos: a1, total: 15, pontos: p1, respostas: resp(shuffle(curso('atendimento').perguntas), a1), criado_em: new Date(agora - 864e5 * (5 - i)).toISOString() });
+      if (c2) demoMem.tentativas.push({ participante_id: id, curso: c2, acertos: a2, total: 15, pontos: p2, respostas: resp(shuffle(curso(c2).perguntas), a2), criado_em: new Date(agora - 864e5 * (4 - i)).toISOString() });
+    });
+    demoSave();
+  }
+  return demoMem;
+}
+function demoSave() { store.set(DEMO_KEY, demoMem); }
+const pub = p => ({ id: p.id, nome: p.nome, setor: p.setor, token: p.token });
+function rankingDe(db, cursoId) {
+  const melhor = new Map();
+  for (const t of db.tentativas) {
+    if (cursoId && t.curso !== cursoId) continue;
+    const k = t.participante_id + '|' + t.curso;
+    const b = melhor.get(k);
+    if (!b || t.pontos > b.pontos) melhor.set(k, t);
+  }
+  const por = new Map();
+  for (const t of melhor.values()) {
+    const p = db.participantes.find(x => x.id === t.participante_id); if (!p) continue;
+    const r = por.get(p.id) || { id: p.id, nome: p.nome, setor: p.setor, pontos: 0, acertos: 0, total: 0, cursos: 0, exemplo: !!p.exemplo };
+    r.pontos += t.pontos; r.acertos += t.acertos; r.total += t.total; r.cursos++; por.set(p.id, r);
+  }
+  return [...por.values()].sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome));
+}
+const localApi = {
+  async registrar(d) {
+    const db = demoDb();
+    if (d.codigo !== DEMO_CODIGO) throw new Error('Código da equipe incorreto. Peça o código ao seu gestor.');
+    if (norm(d.nome).length < 3) throw new Error('Digite seu nome e sobrenome.');
+    if (!/^\d{4}$/.test(d.pin)) throw new Error('O PIN precisa ter 4 números.');
+    if (db.participantes.some(p => p.nome_norm === norm(d.nome))) throw new Error('Esse nome já está cadastrado. Use a aba Entrar.');
+    const p = { id: uid(), nome: d.nome.trim().replace(/\s+/g, ' '), nome_norm: norm(d.nome), setor: d.setor, pin_hash: await hash(d.pin), token: uid(), criado_em: new Date().toISOString() };
+    db.participantes.push(p); demoSave(); return pub(p);
+  },
+  async entrar(d) {
+    const p = demoDb().participantes.find(x => x.nome_norm === norm(d.nome));
+    if (!p || p.pin_hash !== await hash(d.pin)) throw new Error('Nome ou PIN incorretos.');
+    return pub(p);
+  },
+  async salvar(tk, t) {
+    const db = demoDb(); const p = db.participantes.find(x => x.token === tk);
+    if (!p) throw new Error('Sessão expirada. Entre novamente.');
+    db.tentativas.push({ participante_id: p.id, ...t, criado_em: new Date().toISOString() }); demoSave(); return { ok: true };
+  },
+  async ranking(c) { return rankingDe(demoDb(), c); },
+  async minhas(tk) {
+    const db = demoDb(); const p = db.participantes.find(x => x.token === tk);
+    if (!p) throw new Error('Sessão expirada. Entre novamente.');
+    return db.tentativas.filter(t => t.participante_id === p.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
+  },
+  async painel(s) {
+    if (s !== DEMO_GESTOR) throw new Error('Senha do gestor incorreta.');
+    const db = demoDb();
+    return { participantes: db.participantes.map(p => ({ id: p.id, nome: p.nome, setor: p.setor, criado_em: p.criado_em, exemplo: !!p.exemplo })), tentativas: db.tentativas };
+  },
+  async redefinirPin(s, id, pin) {
+    if (s !== DEMO_GESTOR) throw new Error('Senha do gestor incorreta.');
+    if (!/^\d{4}$/.test(pin)) throw new Error('O PIN precisa ter 4 números.');
+    const p = demoDb().participantes.find(x => x.id === id); if (!p) throw new Error('Participante não encontrado.');
+    p.pin_hash = await hash(pin); p.token = uid(); demoSave(); return { ok: true };
+  }
+};
+const api = MODO_DEMO ? localApi : supaApi;
+
+/* ------------------------------------------------------------- estado */
+const S = {
+  user: store.get('academia-drive-sessao', null),
+  view: 'login',
+  rankTab: 'geral',
+  minhas: [],
+  rankCache: {},
+  estudo: null,
+  quiz: null,
+  gestor: null
+};
+const vistosKey = c => `academia-drive-vistos:${S.user?.id}:${c}`;
+const getVistos = c => store.get(vistosKey(c), 0);
+const setVistos = (c, n) => { if (n > getVistos(c)) store.set(vistosKey(c), n); };
+
+/* ------------------------------------------------------------- views */
+const VIEWS = ['login', 'home', 'estudo', 'quiz', 'resultado', 'gestor'];
+function show(v) {
+  if (v !== 'quiz' && S.quiz?.timer) clearInterval(S.quiz.timer);
+  S.view = v;
+  VIEWS.forEach(x => { $('#v-' + x).hidden = x !== v; });
+  $('#topbar').hidden = v === 'login';
+  renderTop();
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+}
+function renderTop() {
+  const who = $('#who');
+  if (S.view === 'gestor') { who.innerHTML = `<span class="chip gold">Área do gestor</span><button class="btn btn-ghost btn-sm" id="btn-sair-gestor">Sair</button>`; return; }
+  if (!S.user) { who.innerHTML = ''; return; }
+  who.innerHTML = `<span class="chip">${esc(S.user.setor)}</span><b>${esc(S.user.nome)}</b><button class="btn btn-ghost btn-sm" id="btn-sair">Sair</button>`;
+}
+
+/* ---------- login */
+function renderLogin(tab = 'entrar') {
+  const opts = SETORES.map(s => `<option>${esc(s)}</option>`).join('');
+  $('#v-login').innerHTML = `
+  <div class="wrap login">
+    <div class="login-hero">
+      <img class="logo-big" src="assets/logo.png" alt="Drive in Burger">
+      <div class="wm-script">Drive in Burger</div>
+      <h1><span class="plate lg">Academia Drive</span></h1>
+      <p class="lead">Treinamentos da equipe Drive in Burger. Estude o curso, faça a avaliação e suba no ranking. Com 80% de acertos, você está aprovado.</p>
+      <div class="menu-list">
+        ${CURSOS.map(c => `<div class="menu-item"><div><div class="mi-name">${esc(c.titulo)}</div><div class="mi-desc">${esc(c.area)} · ${c.slides.length} slides · ${c.porTentativa} perguntas</div></div><div class="mi-val">${fmt(c.porTentativa * 1000)}<small style="font-size:11px"> pts</small></div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-entrar" aria-selected="${tab === 'entrar'}">Entrar</button>
+        <button class="tab" role="tab" id="tab-cad" aria-selected="${tab === 'cad'}">Primeiro acesso</button>
+      </div>
+      ${tab === 'entrar' ? `
+      <form class="form" id="f-entrar" autocomplete="off">
+        <div class="field"><label for="e-nome">Nome e sobrenome</label><input class="input" id="e-nome" required autocomplete="username"></div>
+        <div class="field"><label for="e-pin">PIN (4 números)</label><input class="input pin" id="e-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required autocomplete="current-password" type="password"></div>
+        <div class="form-err" id="e-err"></div>
+        <button class="btn btn-primary" type="submit">Entrar</button>
+      </form>` : `
+      <form class="form" id="f-cad" autocomplete="off">
+        <div class="field"><label for="c-nome">Nome e sobrenome</label><input class="input" id="c-nome" required></div>
+        <div class="field"><label for="c-setor">Setor</label><select class="input" id="c-setor">${opts}</select></div>
+        <div class="row2">
+          <div class="field"><label for="c-pin">Crie um PIN</label><input class="input pin" id="c-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required type="password"></div>
+          <div class="field"><label for="c-pin2">Repita o PIN</label><input class="input pin" id="c-pin2" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required type="password"></div>
+        </div>
+        <div class="field"><label for="c-cod">Código da equipe</label><input class="input" id="c-cod" required inputmode="numeric"></div>
+        <div class="form-err" id="c-err"></div>
+        <button class="btn btn-primary" type="submit">Criar meu acesso</button>
+      </form>`}
+      <div class="login-foot"><button class="btn-link" id="btn-gestor">Área do gestor</button></div>
+    </div>
+  </div>`;
+  $('#tab-entrar').onclick = () => renderLogin('entrar');
+  $('#tab-cad').onclick = () => renderLogin('cad');
+  $('#btn-gestor').onclick = () => { S.gestor = null; renderGestor(); show('gestor'); };
+  const fe = $('#f-entrar'), fc = $('#f-cad');
+  if (fe) fe.onsubmit = async ev => {
+    ev.preventDefault(); const b = fe.querySelector('button[type=submit]'); b.disabled = true; $('#e-err').textContent = '';
+    try { login(await api.entrar({ nome: $('#e-nome').value, pin: $('#e-pin').value })); }
+    catch (e) { $('#e-err').textContent = e.message; } finally { b.disabled = false; }
+  };
+  if (fc) fc.onsubmit = async ev => {
+    ev.preventDefault(); $('#c-err').textContent = '';
+    if ($('#c-pin').value !== $('#c-pin2').value) { $('#c-err').textContent = 'Os dois PINs estão diferentes.'; return; }
+    const b = fc.querySelector('button[type=submit]'); b.disabled = true;
+    try { login(await api.registrar({ nome: $('#c-nome').value, setor: $('#c-setor').value, pin: $('#c-pin').value, codigo: $('#c-cod').value.trim() })); }
+    catch (e) { $('#c-err').textContent = e.message; } finally { b.disabled = false; }
+  };
+  const logoBig = $('#v-login .logo-big'); if (logoBig) logoBig.onerror = () => logoBig.remove();
+}
+function login(u) { S.user = u; store.set('academia-drive-sessao', u); goHome(); }
+function logout() { S.user = null; store.del('academia-drive-sessao'); renderLogin('entrar'); show('login'); }
+
+/* ---------- home */
+async function goHome() {
+  renderHome(); show('home');
+  try {
+    const [minhas, geral] = await Promise.all([api.minhas(S.user.token), api.ranking(null)]);
+    S.minhas = minhas || []; S.rankCache.geral = geral || [];
+  } catch (e) {
+    if (/Sessão expirada/.test(e.message)) { toast(e.message); logout(); return; }
+    toast(e.message);
+  }
+  renderHome();
+  loadRank(S.rankTab);
+}
+function melhorDe(cid) {
+  const ts = S.minhas.filter(t => t.curso === cid);
+  if (!ts.length) return null;
+  return ts.reduce((a, b) => b.pontos > a.pontos ? b : a);
+}
+function renderHome() {
+  if (!S.user) return;
+  const aprovados = CURSOS.filter(c => { const m = melhorDe(c.id); return m && m.acertos / m.total >= APROVACAO; }).length;
+  const meuRank = (S.rankCache.geral || []).findIndex(r => r.id === S.user.id);
+  const total = (S.rankCache.geral || []).find(r => r.id === S.user.id)?.pontos || 0;
+  $('#v-home').innerHTML = `
+  <div class="wrap">
+    <div class="hello">
+      <div><h1>Olá, <span>${esc(primeiroNome(S.user.nome))}</span>!</h1><p>Estude cada curso até o último slide para liberar a avaliação.</p></div>
+      <div class="score-strip">
+        <div class="score-box"><div class="k">Aprovações</div><div class="v num">${aprovados}/${CURSOS.length}</div></div>
+        <div class="score-box"><div class="k">Pontos</div><div class="v num">${fmt(total)}</div></div>
+        <div class="score-box"><div class="k">Ranking geral</div><div class="v num">${meuRank >= 0 ? (meuRank + 1) + 'º' : '—'}</div></div>
+      </div>
+    </div>
+    <div class="sec-head"><h2 class="plate md">Cursos</h2></div>
+    <div class="courses">${CURSOS.map(cardCurso).join('')}</div>
+    <div class="two-col">
+      <section>
+        <div class="sec-head"><h2 class="plate md">Ranking</h2></div>
+        <div class="rank-tabs" id="rank-tabs">
+          <button class="pill" data-rt="geral" aria-pressed="${S.rankTab === 'geral'}">Geral</button>
+          ${CURSOS.map(c => `<button class="pill" data-rt="${c.id}" aria-pressed="${S.rankTab === c.id}">${esc(c.curto || c.titulo)}</button>`).join('')}
+        </div>
+        <div id="rank-box">${rankHtml(S.rankCache[S.rankTab])}</div>
+      </section>
+      <section>
+        <div class="sec-head"><h2 class="plate md">Minhas notas</h2></div>
+        ${S.minhas.length ? `<div class="table-scroll"><table class="hist"><thead><tr><th>Data</th><th>Curso</th><th>Acertos</th><th>Pontos</th></tr></thead><tbody>
+          ${S.minhas.slice(0, 12).map(t => { const ok = t.acertos / t.total >= APROVACAO; return `<tr><td class="num">${dataBR(t.criado_em)}</td><td>${esc(curso(t.curso)?.curto || curso(t.curso)?.titulo || t.curso)}</td><td><span class="chip ${ok ? 'ok' : 'bad'} num">${t.acertos}/${t.total}</span></td><td class="num">${fmt(t.pontos)}</td></tr>`; }).join('')}
+        </tbody></table></div>` : `<div class="rank-list"><p class="empty">Suas avaliações aparecem aqui depois da primeira tentativa.</p></div>`}
+      </section>
+    </div>
+  </div>`;
+  $('#v-home').querySelectorAll('[data-estudar]').forEach(b => b.onclick = () => abrirEstudo(b.dataset.estudar));
+  $('#v-home').querySelectorAll('[data-quiz]').forEach(b => b.onclick = () => abrirQuiz(b.dataset.quiz));
+  $('#rank-tabs').querySelectorAll('[data-rt]').forEach(b => b.onclick = () => loadRank(b.dataset.rt));
+}
+function cardCurso(c) {
+  const vistos = getVistos(c.id), tot = c.slides.length;
+  const m = melhorDe(c.id);
+  const liberado = vistos >= tot || !!m;
+  const ap = m && m.acertos / m.total >= APROVACAO;
+  const status = !m ? `<span class="chip">Não avaliado</span>` : ap ? `<span class="chip ok">Aprovado · ${pct(m.acertos, m.total)}%</span>` : `<span class="chip bad">Refazer · ${pct(m.acertos, m.total)}%</span>`;
+  return `<article class="course">
+    <div class="course-cover"><img src="${esc(c.capa)}" alt="" loading="lazy"><span class="chip red">${esc(c.area)}</span></div>
+    <div class="course-body">
+      <h3 class="course-title">${esc(c.titulo)}${m ? `<span class="best num">${fmt(m.pontos)} pts</span>` : ''}</h3>
+      <p class="course-sub">${esc(c.sub)}</p>
+      <div class="meta"><span><b>${tot}</b> slides</span><span><b>${c.porTentativa}</b> perguntas</span><span><b>${TEMPO_POR_PERGUNTA} s</b> cada</span>${status}</div>
+      <div><div class="progress" aria-label="Slides vistos"><i style="width:${Math.round(Math.min(vistos, tot) / tot * 100)}%"></i></div>
+      <p class="hint" style="margin-top:6px">${Math.min(vistos, tot)} de ${tot} slides vistos</p></div>
+      <div class="course-actions">
+        <button class="btn ${liberado ? 'btn-ghost' : 'btn-primary'}" data-estudar="${c.id}">${vistos ? 'Revisar o curso' : 'Estudar o curso'}</button>
+        <button class="btn ${liberado ? 'btn-primary' : 'btn-ghost'}" data-quiz="${c.id}" ${liberado ? '' : 'disabled title="Veja todos os slides para liberar"'}>${m ? 'Refazer avaliação' : 'Fazer avaliação'}</button>
+      </div>
+      ${liberado ? '' : `<p class="hint">A avaliação libera quando você chegar ao último slide.</p>`}
+    </div>
+  </article>`;
+}
+function rankHtml(list, opts = {}) {
+  if (!list) return `<div class="rank-list"><p class="empty">Carregando ranking…</p></div>`;
+  if (!list.length) return `<div class="rank-list"><p class="empty">Ninguém pontuou ainda. A primeira avaliação abre o ranking.</p></div>`;
+  const lim = opts.limit || 10;
+  let rows = list.slice(0, lim);
+  const meIdx = list.findIndex(r => r.id === S.user?.id);
+  if (meIdx >= lim) rows = [...rows, list[meIdx]];
+  return `<div class="rank-list">${rows.map(r => {
+    const i = list.indexOf(r);
+    return `<div class="rk p${i + 1} ${r.id === S.user?.id ? 'me' : ''}"><span class="pos num">${i + 1}</span>
+      <div style="min-width:0"><div class="nm">${esc(r.nome)}</div><div class="st">${esc(r.setor)}${r.cursos > 1 ? ` · ${r.cursos} cursos` : ''}</div></div>
+      <div class="pts num">${fmt(r.pontos)}<small>${pct(r.acertos, r.total)}% de acertos</small></div></div>`;
+  }).join('')}</div>`;
+}
+async function loadRank(tab) {
+  S.rankTab = tab;
+  const box = $('#rank-box'); if (!box) return;
+  $('#rank-tabs').querySelectorAll('[data-rt]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rt === tab));
+  box.innerHTML = rankHtml(S.rankCache[tab]);
+  try { S.rankCache[tab] = await api.ranking(tab === 'geral' ? null : tab); } catch (e) { toast(e.message); }
+  if (S.rankTab === tab && $('#rank-box')) $('#rank-box').innerHTML = rankHtml(S.rankCache[tab]);
+}
+
+/* ---------- estudo */
+function abrirEstudo(cid) {
+  S.estudo = { cid, i: Math.min(getVistos(cid), curso(cid).slides.length - 1) };
+  if (S.estudo.i < 0) S.estudo.i = 0;
+  renderEstudo(); show('estudo');
+}
+function renderEstudo() {
+  const c = curso(S.estudo.cid), i = S.estudo.i, s = c.slides[i], tot = c.slides.length;
+  setVistos(c.id, i + 1);
+  const vistos = getVistos(c.id), ultimo = i === tot - 1;
+  $('#v-estudo').innerHTML = `
+  <div class="wrap">
+    <div class="study-top">
+      <button class="btn btn-ghost btn-sm" id="es-voltar">← Cursos</button>
+      <h1>${esc(c.titulo)}</h1>
+      <span class="chip red">${esc(c.area)}</span>
+    </div>
+    <div class="slide-stage">
+      <div class="slide-frame"><img src="${esc(s.img)}" alt="Slide ${i + 1}: ${esc(s.t)}"></div>
+      <div class="note">
+        <span class="count num">Slide ${i + 1} de ${tot}</span>
+        <h2>${esc(s.t)}</h2>
+        <p>${esc(s.n)}</p>
+        <div class="progress"><i style="width:${Math.round(vistos / tot * 100)}%"></i></div>
+        <div class="slide-nav">
+          <button class="btn btn-ghost" id="es-ant" ${i === 0 ? 'disabled' : ''}>← Anterior</button>
+          ${ultimo ? `<button class="btn btn-primary" id="es-quiz">Fazer a avaliação</button>` : `<button class="btn btn-primary" id="es-prox">Próximo →</button>`}
+        </div>
+      </div>
+    </div>
+    <div class="thumbs" id="thumbs">${c.slides.map((x, k) => `<button class="thumb ${k < vistos ? 'seen' : ''}" data-k="${k}" aria-current="${k === i}" aria-label="Slide ${k + 1}" ${k > vistos ? 'disabled title="Avance pelos slides para abrir este"' : ''}><img src="${esc(x.img)}" alt="" loading="lazy"><span>${k + 1}</span></button>`).join('')}</div>
+  </div>`;
+  $('#es-voltar').onclick = goHome;
+  $('#es-ant').onclick = () => { S.estudo.i--; renderEstudo(); };
+  if ($('#es-prox')) $('#es-prox').onclick = () => { S.estudo.i++; renderEstudo(); };
+  if ($('#es-quiz')) $('#es-quiz').onclick = () => abrirQuiz(c.id);
+  $('#thumbs').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { S.estudo.i = +b.dataset.k; renderEstudo(); });
+  const cur = $('#thumbs [aria-current="true"]'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+  // pré-carrega o próximo slide
+  if (!ultimo) { const im = new Image(); im.src = c.slides[i + 1].img; }
+}
+document.addEventListener('keydown', e => {
+  if (S.view !== 'estudo' || !S.estudo || e.target.closest('input,select,textarea')) return;
+  const tot = curso(S.estudo.cid).slides.length;
+  if (e.key === 'ArrowRight' && S.estudo.i < tot - 1) { S.estudo.i++; renderEstudo(); }
+  if (e.key === 'ArrowLeft' && S.estudo.i > 0) { S.estudo.i--; renderEstudo(); }
+});
+
+/* ---------- quiz */
+const SHAPES = [
+  '<svg viewBox="0 0 20 20"><polygon points="10,2 19,18 1,18" fill="currentColor"/></svg>',
+  '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" transform="rotate(45 10 10)" fill="currentColor"/></svg>',
+  '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="currentColor"/></svg>',
+  '<svg viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2" fill="currentColor"/></svg>'
+];
+function abrirQuiz(cid) {
+  const c = curso(cid);
+  S.quiz = { cid, stage: 'intro', outros: null };
+  renderQuiz(); show('quiz');
+  api.ranking(cid).then(r => { if (S.quiz && S.quiz.cid === cid) S.quiz.outros = (r || []).filter(x => x.id !== S.user.id); }).catch(() => { if (S.quiz) S.quiz.outros = []; });
+}
+function iniciarQuiz() {
+  const c = curso(S.quiz.cid);
+  const qs = shuffle(c.perguntas).slice(0, c.porTentativa).map(q => {
+    const ops = shuffle(q.o.map((t, k) => ({ t, certa: k === 0 })));
+    return { ...q, ops };
+  });
+  Object.assign(S.quiz, { stage: 'q', qs, i: 0, pontos: 0, acertos: 0, respostas: [], historico: [] });
+  if (!S.quiz.outros) S.quiz.outros = [];
+  renderQuiz();
+}
+function renderQuiz() {
+  const Q = S.quiz, c = curso(Q.cid), el = $('#v-quiz');
+  if (Q.stage === 'intro') {
+    const aprovar = Math.ceil(c.porTentativa * APROVACAO);
+    el.innerHTML = `<div class="wrap"><div class="intro">
+      <button class="btn btn-ghost btn-sm" id="qz-voltar">← Cursos</button>
+      <p class="eyebrow" style="margin-top:22px">Avaliação · ${esc(c.area)}</p>
+      <h1 style="margin-top:8px"><span class="plate lg">${esc(c.titulo)}</span></h1>
+      <div class="rules">
+        <div class="menu-item"><div><div class="mi-name">Perguntas</div><div class="mi-desc">Sorteadas do curso, em ordem diferente a cada tentativa</div></div><div class="mi-val">${c.porTentativa}</div></div>
+        <div class="menu-item"><div><div class="mi-name">Tempo</div><div class="mi-desc">Por pergunta. Se o tempo acabar, conta como erro</div></div><div class="mi-val">${TEMPO_POR_PERGUNTA} s</div></div>
+        <div class="menu-item"><div><div class="mi-name">Pontos por acerto</div><div class="mi-desc">500 pelo acerto + até 500 pela rapidez</div></div><div class="mi-val">até 1.000</div></div>
+        <div class="menu-item"><div><div class="mi-name">Para aprovar</div><div class="mi-desc">80% de acertos. Vale a sua melhor tentativa no ranking</div></div><div class="mi-val">${aprovar} de ${c.porTentativa}</div></div>
+      </div>
+      <button class="btn btn-primary" id="qz-go" style="width:100%;padding:15px;font-size:17px">Começar</button>
+    </div></div>`;
+    $('#qz-voltar').onclick = goHome; $('#qz-go').onclick = iniciarQuiz;
+    return;
+  }
+  const q = Q.qs[Q.i], tot = Q.qs.length;
+  el.innerHTML = `<div class="wrap quiz">
+    <div class="q-head"><span class="q-course">${esc(c.titulo)}</span><span class="q-score num" id="q-score">${fmt(Q.pontos)} pts</span></div>
+    <div class="q-dots">${Q.qs.map((_, k) => `<i class="${k < Q.i ? (Q.historico[k] ? 'ok' : 'bad') : k === Q.i ? 'cur' : ''}"></i>`).join('')}</div>
+    <div class="q-main">
+      <div class="timer" id="timer"><svg viewBox="0 0 80 80"><circle class="bg" cx="40" cy="40" r="34" fill="none" stroke-width="8"/><circle class="fg" id="t-fg" cx="40" cy="40" r="34" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg><b class="num" id="t-num">${TEMPO_POR_PERGUNTA}</b></div>
+      <div><p class="q-num num">Pergunta ${Q.i + 1} de ${tot}</p><h1 class="q-text">${esc(q.p)}</h1></div>
+    </div>
+    <div class="opts" id="opts">${q.ops.map((o, k) => `<button class="opt ${'abcd'[k]}" data-k="${k}"><span class="shape">${SHAPES[k]}</span><span>${esc(o.t)}</span></button>`).join('')}</div>
+    <div id="fb"></div>
+  </div>`;
+  $('#opts').querySelectorAll('.opt').forEach(b => b.onclick = () => responder(+b.dataset.k));
+  iniciarTimer();
+}
+function iniciarTimer() {
+  const Q = S.quiz; clearInterval(Q.timer);
+  Q.t0 = performance.now(); Q.restante = TEMPO_POR_PERGUNTA;
+  const fg = $('#t-fg'), num = $('#t-num'), box = $('#timer'), L = 213.6;
+  Q.timer = setInterval(() => {
+    const el = (performance.now() - Q.t0) / 1000;
+    Q.restante = Math.max(0, TEMPO_POR_PERGUNTA - el);
+    fg.style.strokeDashoffset = (L * (1 - Q.restante / TEMPO_POR_PERGUNTA)).toFixed(1);
+    num.textContent = Math.ceil(Q.restante);
+    box.classList.toggle('low', Q.restante <= 8);
+    if (Q.restante <= 0) responder(-1);
+  }, 100);
+}
+function responder(k) {
+  const Q = S.quiz; if (Q.respondida === Q.i) return;
+  Q.respondida = Q.i; clearInterval(Q.timer);
+  const q = Q.qs[Q.i];
+  const certa = k >= 0 && q.ops[k].certa;
+  const ganho = certa ? Math.round(500 + 500 * (Q.restante / TEMPO_POR_PERGUNTA)) : 0;
+  const antes = Q.pontos;
+  Q.pontos += ganho; if (certa) Q.acertos++;
+  Q.historico[Q.i] = certa;
+  Q.respostas.push({ q: q.id, ok: certa, t: Math.round((TEMPO_POR_PERGUNTA - Q.restante) * 10) / 10 });
+  Q.erros = Q.erros || [];
+  if (!certa) Q.erros.push({ q, escolhida: k >= 0 ? q.ops[k].t : null });
+
+  const opts = $('#opts'); opts.classList.add('done');
+  opts.querySelectorAll('.opt').forEach((b, j) => {
+    b.disabled = true;
+    if (q.ops[j].certa) { b.classList.add('right'); b.insertAdjacentHTML('beforeend', '<span class="mark">✓</span>'); }
+    if (j === k) { b.classList.add('picked'); if (!certa) { b.classList.add('wrong'); b.insertAdjacentHTML('beforeend', '<span class="mark">✕</span>'); } }
+  });
+  const ultimo = Q.i === Q.qs.length - 1;
+  const titulo = certa ? ['Na mosca!', 'Mandou bem!', 'Isso aí!', 'Perfeito!'][Q.i % 4] : k < 0 ? 'Tempo esgotado' : 'Não foi dessa vez';
+  $('#fb').innerHTML = `<div class="feedback">
+    <div class="fb-card">
+      <div class="fb-title ${certa ? 'ok' : 'bad'}">${titulo}</div>
+      <div class="fb-pts num">${certa ? '+' + fmt(ganho) + ' pts' : '+0 pts'}</div>
+      <p class="fb-exp">${esc(q.e)}</p>
+      ${q.ref ? `<p class="fb-ref">Reveja no slide ${q.ref}: ${esc(curso(Q.cid).slides[q.ref - 1]?.t || '')}</p>` : ''}
+    </div>
+    <div class="fb-card"><p class="eyebrow">Sua pontuação no ranking do curso</p><div class="live-rank" id="live-rank"></div></div>
+  </div>
+  <div class="next-row"><button class="btn btn-primary" id="q-next">${ultimo ? 'Ver resultado' : 'Próxima pergunta →'}</button></div>`;
+  animarScore(antes, Q.pontos);
+  liveRank(antes, Q.pontos);
+  const nx = $('#q-next'); nx.focus({ preventScroll: true });
+  nx.onclick = () => { if (ultimo) finalizar(); else { Q.i++; renderQuiz(); } };
+  $('#fb').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
+}
+function animarScore(de, para) {
+  const el = $('#q-score'); const t0 = performance.now();
+  const step = t => { const p = Math.min(1, (t - t0) / 700); el.textContent = fmt(de + (para - de) * (1 - Math.pow(1 - p, 3))) + ' pts'; if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function liveRank(antes, depois) {
+  const Q = S.quiz, box = $('#live-rank'); if (!box) return;
+  const ROW = 56, MOSTRA = 5;
+  const outros = (Q.outros || []).slice(0, 30);
+  const me = { id: S.user.id, nome: S.user.nome, setor: S.user.setor, me: true };
+  const lista = p => [...outros.map(o => ({ ...o })), { ...me, pontos: p }].sort((a, b) => b.pontos - a.pontos || (a.me ? -1 : 1));
+  const janela = l => { const mi = l.findIndex(r => r.me); const vis = l.slice(0, MOSTRA).map(r => r.id); if (mi >= MOSTRA) { vis.pop(); vis.push(me.id); } return vis; };
+  const l0 = lista(antes), l1 = lista(depois);
+  const all = l1;
+  box.style.height = (Math.min(all.length, MOSTRA) * ROW) + 'px';
+  if (!outros.length) {
+    box.style.height = 'auto';
+    box.innerHTML = `<p class="hint" style="padding:10px 0">Você é o primeiro neste curso. Os colegas vão entrar no ranking depois de você.</p>
+      <div class="rk me" style="position:static"><span class="pos num">1</span><div style="min-width:0"><div class="nm">${esc(me.nome)}</div><div class="st">${esc(me.setor)}</div></div><div class="pts num">${fmt(depois)}</div></div>`;
+    return;
+  }
+  const pos = (l, id) => l.findIndex(r => r.id === id);
+  const vis0 = janela(l0), vis1 = janela(l1);
+  const slot = (vis, id) => { const k = vis.indexOf(id); return k < 0 ? MOSTRA : k; };
+  box.innerHTML = all.map(r => {
+    const s0 = slot(vis0, r.id);
+    const p0 = pos(l0, r.id) + 1;
+    return `<div class="rk ${r.me ? 'me' : ''}" data-id="${esc(r.id)}" style="transform:translateY(${s0 * ROW}px);opacity:${vis0.includes(r.id) ? 1 : 0}">
+      <span class="pos num">${p0}</span><div style="min-width:0"><div class="nm">${esc(r.nome)}</div><div class="st">${esc(r.setor)}</div></div>
+      <div class="pts num">${fmt(r.me ? antes : r.pontos)}</div></div>`;
+  }).join('');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    box.querySelectorAll('.rk').forEach(row => {
+      const id = row.dataset.id;
+      row.style.transform = `translateY(${slot(vis1, id) * ROW}px)`;
+      row.style.opacity = vis1.includes(id) ? 1 : 0;
+      row.querySelector('.pos').textContent = pos(l1, id) + 1;
+      if (row.classList.contains('me')) row.querySelector('.pts').textContent = fmt(depois);
+    });
+  }));
+}
+async function finalizar() {
+  const Q = S.quiz, c = curso(Q.cid);
+  const tentativa = { curso: c.id, acertos: Q.acertos, total: Q.qs.length, pontos: Q.pontos, respostas: Q.respostas };
+  Q.tentativa = tentativa; Q.salvo = 'salvando';
+  renderResultado(); show('resultado');
+  if (tentativa.acertos / tentativa.total >= APROVACAO) festa(tentativa);
+  await salvarTentativa();
+}
+async function salvarTentativa() {
+  const Q = S.quiz;
+  Q.salvo = 'salvando'; atualizarSalvo();
+  try {
+    await api.salvar(S.user.token, Q.tentativa);
+    Q.salvo = 'ok';
+    const r = await api.ranking(Q.cid); Q.rankFinal = r || [];
+    S.minhas = await api.minhas(S.user.token).catch(() => S.minhas);
+  } catch (e) { Q.salvo = 'erro'; Q.erroSalvar = e.message; }
+  if (S.view === 'resultado') renderResultado();
+}
+function atualizarSalvo() {
+  const el = $('#save-state'); if (!el) return;
+  const Q = S.quiz;
+  el.innerHTML = Q.salvo === 'salvando' ? 'Salvando sua nota…' : Q.salvo === 'ok' ? 'Nota salva.' : `Não foi possível salvar: ${esc(Q.erroSalvar)} <button class="btn-link" id="retry">Tentar de novo</button>`;
+  const r = $('#retry'); if (r) r.onclick = salvarTentativa;
+}
+function renderResultado() {
+  const Q = S.quiz, c = curso(Q.cid), t = Q.tentativa;
+  const p = pct(t.acertos, t.total), ok = t.acertos / t.total >= APROVACAO;
+  const precisa = Math.ceil(t.total * APROVACAO);
+  const rk = Q.rankFinal; const meuPos = rk ? rk.findIndex(r => r.id === S.user.id) : -1;
+  $('#v-resultado').innerHTML = `<div class="wrap result">
+    <div class="result-hero">
+      <div class="big-pct ${ok ? '' : 'fail'}"><div><b class="num">${p}%</b><br><span>de acertos</span></div></div>
+      <div>
+        <p class="eyebrow">${esc(c.titulo)}</p>
+        <h1 class="${ok ? '' : 'fail'}">${ok ? 'Aprovado!' : 'Quase lá!'}</h1>
+        <p class="num">Você acertou <b>${t.acertos} de ${t.total}</b> e fez <b>${fmt(t.pontos)} pontos</b>.${ok ? '' : ` Para aprovar são ${precisa} acertos. Revise os pontos abaixo e tente de novo.`}
+        ${meuPos >= 0 ? ` Sua melhor nota está em <b>${meuPos + 1}º lugar</b> no ranking do curso.` : ''}</p>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="r-home">Voltar aos cursos</button>
+          <button class="btn btn-ghost" id="r-again">Tentar de novo</button>
+          <button class="btn btn-ghost" id="r-study">Revisar o curso</button>
+        </div>
+        <p class="save-state" id="save-state"></p>
+      </div>
+    </div>
+    <div class="two-col">
+      <section>
+        <div class="sec-head"><h2 class="plate md">${Q.erros?.length ? 'Para revisar' : 'Gabarito'}</h2></div>
+        ${Q.erros?.length ? `<div class="review">${Q.erros.map(er => `<div class="rv"><h3>${esc(er.q.p)}</h3>
+          <p>Sua resposta: <b>${er.escolhida ? esc(er.escolhida) : 'tempo esgotado'}</b></p>
+          <p>Resposta certa: <b>${esc(er.q.o[0])}</b></p>
+          <p>${esc(er.q.e)}${er.q.ref ? ` (slide ${er.q.ref})` : ''}</p></div>`).join('')}</div>`
+      : `<div class="rank-list"><p class="empty">Você acertou todas as perguntas. Gabarito completo!</p></div>`}
+      </section>
+      <section>
+        <div class="sec-head"><h2 class="plate md">Ranking</h2></div>
+        ${rankHtml(rk, { limit: 10 })}
+      </section>
+    </div>
+  </div>`;
+  $('#r-home').onclick = goHome;
+  $('#r-again').onclick = () => abrirQuiz(c.id);
+  $('#r-study').onclick = () => abrirEstudo(c.id);
+  atualizarSalvo();
+}
+
+/* ---------- celebração */
+function festa(t) {
+  const reduz = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ov = document.createElement('div'); ov.className = 'party'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Aprovado');
+  ov.innerHTML = `<canvas></canvas><div class="checker top"></div><div class="checker bot"></div>
+    <div class="party-inner"><div class="neon">Aprovado!</div>
+    <p class="party-sub num">${t.acertos} de ${t.total} acertos · ${fmt(t.pontos)} pontos</p>
+    <button class="btn btn-primary" id="party-ok">Ver meu resultado</button></div>`;
+  document.body.appendChild(ov);
+  const fechar = () => { cancelAnimationFrame(raf); ov.remove(); };
+  $('#party-ok', ov).onclick = fechar; $('#party-ok', ov).focus();
+  const cv = $('canvas', ov), ctx = cv.getContext('2d');
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const resize = () => { cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; };
+  resize();
+  const cores = ['#f6a42f', '#c42a33', '#f4ead8', '#1f9a92', '#ffffff'];
+  const ps = Array.from({ length: reduz ? 0 : 170 }, () => ({
+    x: Math.random() * cv.width, y: -Math.random() * cv.height, w: (6 + Math.random() * 9) * dpr, h: (9 + Math.random() * 12) * dpr,
+    vy: (1.6 + Math.random() * 3) * dpr, vx: (Math.random() - .5) * 1.6 * dpr, r: Math.random() * 6, vr: (Math.random() - .5) * .2,
+    c: cores[Math.floor(Math.random() * cores.length)], xadrez: Math.random() < .14
+  }));
+  let raf;
+  const tick = () => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of ps) {
+      p.y += p.vy; p.x += p.vx + Math.sin(p.y / (40 * dpr)) * .6 * dpr; p.r += p.vr;
+      if (p.y > cv.height + 20) { p.y = -20; p.x = Math.random() * cv.width; }
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      if (p.xadrez) {
+        const s = p.w * .8;
+        for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { ctx.fillStyle = (a + b) % 2 ? '#141112' : '#f6a42f'; ctx.fillRect(-1.5 * s + a * s, -1.5 * s + b * s, s, s); }
+      } else { ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); }
+      ctx.restore();
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  if (!reduz) tick();
+}
+
+/* ---------- gestor */
+function renderGestor() {
+  const el = $('#v-gestor');
+  if (!S.gestor) {
+    el.innerHTML = `<div class="wrap"><div class="intro">
+      <button class="btn btn-ghost btn-sm" id="g-voltar">← Voltar</button>
+      <h1 style="margin-top:22px"><span class="plate lg">Área do gestor</span></h1>
+      <p style="color:var(--muted);margin:14px 0 20px">Acompanhe quem fez cada curso, as notas e as perguntas que a equipe mais erra.</p>
+      <form class="form card" id="f-gestor"><div class="field"><label for="g-senha">Senha do gestor</label><input class="input" id="g-senha" type="password" required autocomplete="current-password"></div>
+      <div class="form-err" id="g-err"></div><button class="btn btn-primary" type="submit">Entrar</button></form>
+    </div></div>`;
+    $('#g-voltar').onclick = () => { if (S.user) goHome(); else { renderLogin(); show('login'); } };
+    $('#f-gestor').onsubmit = async ev => {
+      ev.preventDefault(); const s = $('#g-senha').value; $('#g-err').textContent = '';
+      try { const d = await api.painel(s); S.gestor = { senha: s, dados: d, setor: '' }; renderGestor(); }
+      catch (e) { $('#g-err').textContent = e.message; }
+    };
+    return;
+  }
+  const { dados } = S.gestor;
+  const ps = dados.participantes, ts = dados.tentativas;
+  const melhor = (pid, cid) => ts.filter(t => t.participante_id === pid && t.curso === cid).reduce((a, b) => !a || b.pontos > a.pontos ? b : a, null);
+  const filtrados = ps.filter(p => !S.gestor.setor || p.setor === S.gestor.setor);
+  const mediaAc = ts.length ? Math.round(ts.reduce((s, t) => s + t.acertos / t.total, 0) / ts.length * 100) : 0;
+  const kpiCurso = CURSOS.map(c => {
+    const fizeram = ps.filter(p => melhor(p.id, c.id)).length;
+    const aprov = ps.filter(p => { const m = melhor(p.id, c.id); return m && m.acertos / m.total >= APROVACAO; }).length;
+    return `<div class="kpi"><div class="k">${esc(c.curto || c.titulo)}</div><div class="v num">${aprov}<span style="font-size:16px;color:var(--muted)"> / ${ps.length}</span></div><div class="s">aprovados · ${fizeram} já fizeram</div></div>`;
+  }).join('');
+  const cel = (p, c) => {
+    const m = melhor(p.id, c.id);
+    if (!m) return `<span class="chip">Não fez</span>`;
+    const ok = m.acertos / m.total >= APROVACAO;
+    return `<span class="chip ${ok ? 'ok' : 'bad'} num">${ok ? 'Aprovado' : 'Reprovado'} · ${pct(m.acertos, m.total)}%</span>`;
+  };
+  const missHtml = CURSOS.map(c => {
+    const st = new Map();
+    ts.filter(t => t.curso === c.id).forEach(t => (t.respostas || []).forEach(r => { const s = st.get(r.q) || { n: 0, e: 0 }; s.n++; if (!r.ok) s.e++; st.set(r.q, s); }));
+    const top = [...st.entries()].filter(([, s]) => s.e > 0).map(([id, s]) => ({ q: c.perguntas.find(x => x.id === id), ...s, taxa: s.e / s.n }))
+      .filter(x => x.q).sort((a, b) => b.taxa - a.taxa || b.e - a.e).slice(0, 6);
+    return `<div><p class="eyebrow" style="margin-bottom:6px">${esc(c.titulo)}</p><div class="rank-list" style="padding-block:4px">${top.length ? top.map(x => `<div class="miss-item"><div class="mq">${esc(x.q.p)}</div>
+      <div class="miss-bar"><div class="track"><i style="width:${Math.round(x.taxa * 100)}%"></i></div><span class="num">${Math.round(x.taxa * 100)}% erram (${x.e}/${x.n})</span></div></div>`).join('') : `<p class="empty">Sem erros registrados ainda.</p>`}</div></div>`;
+  }).join('');
+  $('#v-gestor').innerHTML = `<div class="wrap">
+    <div class="hello"><div><h1>Painel do <span>gestor</span></h1><p>${ps.length} pessoas cadastradas · ${ts.length} avaliações feitas</p></div>
+      <div class="score-strip"><button class="btn btn-ghost" id="g-refresh">Atualizar</button><button class="btn btn-primary" id="g-csv">Baixar planilha (CSV)</button></div></div>
+    <div class="sec-head"><h2 class="plate md">Resumo</h2></div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Participantes</div><div class="v num">${ps.length}</div><div class="s">cadastrados na plataforma</div></div>
+      <div class="kpi"><div class="k">Média de acertos</div><div class="v num">${mediaAc}%</div><div class="s">em ${ts.length} avaliações</div></div>
+      ${kpiCurso}
+    </div>
+    <div class="sec-head"><h2 class="plate md">Equipe</h2></div>
+    <div class="toolbar"><label for="g-setor" class="hint">Setor</label><select class="input" id="g-setor"><option value="">Todos</option>${SETORES.map(s => `<option ${S.gestor.setor === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
+    <div class="table-scroll"><table class="gt"><thead><tr><th>Nome</th><th>Setor</th>${CURSOS.map(c => `<th>${esc(c.curto || c.titulo)}</th>`).join('')}<th>Tentativas</th><th>Cadastro</th><th>PIN</th></tr></thead><tbody>
+      ${filtrados.length ? filtrados.map(p => `<tr><td class="nm">${esc(p.nome)}</td><td>${esc(p.setor)}</td>${CURSOS.map(c => `<td>${cel(p, c)}</td>`).join('')}
+        <td class="num">${ts.filter(t => t.participante_id === p.id).length}</td><td class="num">${dataBR(p.criado_em)}</td>
+        <td><form class="pinform" data-pid="${esc(p.id)}"><input class="input pin" id="pin-${esc(p.id)}" aria-label="Novo PIN de ${esc(p.nome)}" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="0000"><button class="btn btn-ghost btn-sm">Redefinir</button></form></td></tr>`).join('')
+      : `<tr><td colspan="${5 + CURSOS.length}" class="empty">Ninguém cadastrado neste setor.</td></tr>`}
+    </tbody></table></div>
+    <div class="sec-head"><h2 class="plate md">Mais erradas</h2></div>
+    <div class="miss">${missHtml}</div>
+  </div>`;
+  $('#g-setor').onchange = e => { S.gestor.setor = e.target.value; renderGestor(); };
+  $('#g-refresh').onclick = async () => { try { S.gestor.dados = await api.painel(S.gestor.senha); renderGestor(); toast('Painel atualizado'); } catch (e) { toast(e.message); } };
+  $('#g-csv').onclick = () => baixarCsv(ps, ts, melhor);
+  $('#v-gestor').querySelectorAll('.pinform').forEach(f => f.onsubmit = async ev => {
+    ev.preventDefault(); const pin = f.querySelector('input').value;
+    try { await api.redefinirPin(S.gestor.senha, f.dataset.pid, pin); f.querySelector('input').value = ''; toast('PIN redefinido. Avise o colaborador.'); }
+    catch (e) { toast(e.message); }
+  });
+}
+function baixarCsv(ps, ts, melhor) {
+  const linhas = [['Nome', 'Setor', 'Cadastro', ...CURSOS.flatMap(c => [c.titulo + ' - melhor %', c.titulo + ' - pontos', c.titulo + ' - status']), 'Tentativas']];
+  ps.forEach(p => linhas.push([p.nome, p.setor, dataBR(p.criado_em), ...CURSOS.flatMap(c => { const m = melhor(p.id, c.id); return m ? [pct(m.acertos, m.total), m.pontos, m.acertos / m.total >= APROVACAO ? 'Aprovado' : 'Reprovado'] : ['', '', 'Não fez']; }), ts.filter(t => t.participante_id === p.id).length]));
+  const csv = '﻿' + linhas.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  if (window.claude?.use) {
+    window.claude.use('downloads').then(dl => {
+      if (dl) dl.save({ filename: 'academia-drive-notas.csv', data: new Blob([csv], { type: 'text/csv' }) }).catch(() => { });
+      else toast('Download indisponível nesta visualização.');
+    });
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'academia-drive-notas.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ------------------------------------------------------------- início */
+document.addEventListener('click', e => {
+  if (e.target.closest('#btn-sair')) logout();
+  if (e.target.closest('#btn-sair-gestor')) { S.gestor = null; if (S.user) goHome(); else { renderLogin(); show('login'); } }
+  if (e.target.closest('#brand')) { if (S.user && S.view !== 'quiz') goHome(); }
+});
+(function boot() {
+  const logo = new Image();
+  logo.onload = () => document.documentElement.classList.add('tem-logo');
+  logo.src = 'assets/logo.png';
+  if (MODO_DEMO) $('#demo-bar').hidden = false;
+  if (S.user) goHome(); else { renderLogin(); show('login'); }
+})();
+
+</script>
+
+</body>
+</html>
