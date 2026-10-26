@@ -324,11 +324,23 @@ p{margin:0}
   *{transition:none!important;animation:none!important}
 }
 
+/* gestor: cadastro e acesso */
+.card-title{font-family:var(--font-slab);font-weight:800;font-size:22px;margin-bottom:16px}
+.cad-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,.8fr) auto;gap:12px;align-items:end}
+.cad-form .cad-msg{grid-column:1/-1;min-height:0;margin:0}
+.cad-form .cad-msg:empty{display:none}
+.cad-msg.ok{color:var(--ok)}
+.gt select.input{width:auto;padding:6px 8px;font-size:13px}
+.gt tr.off td{opacity:.55}
+.gt tr.off td:last-child{opacity:1}
+.chk{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+@media (max-width:760px){.cad-form{grid-template-columns:minmax(0,1fr)}}
+
 </style>
 </head>
 <body>
 
-<div id="demo-bar" class="demo-bar" hidden>Modo demonstração: os dados ficam salvos só neste aparelho. Código da equipe <code>1978</code> · Senha do gestor <code>gestor1978</code></div>
+<div id="demo-bar" class="demo-bar" hidden>Modo demonstração: os dados ficam salvos só neste aparelho. Colaboradores de exemplo entram com o PIN <code>1234</code> · Gestor: <code>gestor@demo.com</code> / <code>gestor1978</code></div>
 <header class="topbar" id="topbar" hidden>
   <div class="checker fino"></div>
   <div class="wrap">
@@ -760,46 +772,96 @@ async function hash(s) {
 
 /* ------------------------------------------------------------- dados */
 const MODO_DEMO = !(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+const BASE_URL = () => CONFIG.SUPABASE_URL.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+const GKEY = 'academia-drive-gestor';
+let gSess = store.get(GKEY, null);           // sessão do gestor (Supabase Auth)
+function gSalvar(j) {
+  gSess = { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000, email: j.user?.email || gSess?.email };
+  store.set(GKEY, gSess);
+}
+function gLimpar() { gSess = null; store.del(GKEY); }
+async function chamar(url, opts) {
+  try { return await fetch(url, opts); }
+  catch { throw new Error('Sem conexão com o servidor. Confira a internet e tente de novo.'); }
+}
+function erroAuth(body) {
+  const m = (body && (body.error_description || body.msg || body.message || body.error)) || '';
+  if (/invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/email not confirmed/i.test(m)) return 'Este e-mail ainda não foi confirmado no Supabase.';
+  if (/refresh token/i.test(m)) return 'Sua sessão de gestor expirou. Entre novamente.';
+  return m || 'Não foi possível entrar. Tente de novo.';
+}
 
 const supaApi = {
-  async rpc(fn, args) {
-    const base = CONFIG.SUPABASE_URL.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
-    let res;
-    try {
-      res = await fetch(`${base}/rest/v1/rpc/${fn}`, {
+  async auth(grant, body) {
+    const res = await chamar(`${BASE_URL()}/auth/v1/token?grant_type=${grant}`, {
+      method: 'POST', headers: { apikey: CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(erroAuth(j));
+    gSalvar(j); return j;
+  },
+  async renovar() {
+    if (!gSess?.refresh) throw new Error('Entre como gestor.');
+    try { await supaApi.auth('refresh_token', { refresh_token: gSess.refresh }); }
+    catch (e) { gLimpar(); throw new Error('Sua sessão de gestor expirou. Entre novamente.'); }
+  },
+  async rpc(fn, args, comLogin = false) {
+    const envia = async () => {
+      let bearer = CONFIG.SUPABASE_ANON_KEY;
+      if (comLogin) {
+        if (!gSess) throw new Error('Entre como gestor.');
+        if (Date.now() > gSess.exp - 60000) await supaApi.renovar();
+        bearer = gSess.access;
+      }
+      return chamar(`${BASE_URL()}/rest/v1/rpc/${fn}`, {
         method: 'POST',
-        headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + bearer, 'Content-Type': 'application/json' },
         body: JSON.stringify(args || {})
       });
-    } catch { throw new Error('Sem conexão com o servidor. Confira a internet e tente de novo.'); }
+    };
+    let res = await envia();
+    if (comLogin && res.status === 401) { await supaApi.renovar(); res = await envia(); }
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error((body && (body.message || body.hint)) || 'Erro no servidor (' + res.status + ').');
+    if (!res.ok) {
+      if (res.status === 404) throw new Error('O banco ainda não foi atualizado. Rode o schema.sql no Supabase.');
+      throw new Error((body && (body.message || body.hint)) || 'Erro no servidor (' + res.status + ').');
+    }
     return body;
   },
-  registrar: (d) => supaApi.rpc('trein_registrar', { p_nome: d.nome, p_setor: d.setor, p_pin: d.pin, p_codigo: d.codigo }),
   entrar: (d) => supaApi.rpc('trein_entrar', { p_nome: d.nome, p_pin: d.pin }),
   salvar: (tk, t) => supaApi.rpc('trein_salvar_tentativa', { p_token: tk, p_curso: t.curso, p_acertos: t.acertos, p_total: t.total, p_pontos: t.pontos, p_respostas: t.respostas }),
   ranking: (c) => supaApi.rpc('trein_ranking', { p_curso: c || null }),
   minhas: (tk) => supaApi.rpc('trein_minhas_tentativas', { p_token: tk }),
-  painel: (s) => supaApi.rpc('trein_painel', { p_senha: s }),
-  redefinirPin: (s, id, pin) => supaApi.rpc('trein_redefinir_pin', { p_senha: s, p_participante: id, p_pin: pin })
+  // gestor
+  async gestorLogin(email, senha) { await supaApi.auth('password', { email: email.trim(), password: senha }); return supaApi.gestorEu(); },
+  gestorSessao: () => !!gSess,
+  gestorSair() {
+    if (gSess?.access) chamar(`${BASE_URL()}/auth/v1/logout`, { method: 'POST', headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + gSess.access } }).catch(() => { });
+    gLimpar();
+  },
+  gestorEu: () => supaApi.rpc('trein_gestor_eu', {}, true),
+  painel: () => supaApi.rpc('trein_painel', {}, true),
+  cadastrar: (d) => supaApi.rpc('trein_gestor_cadastrar', { p_nome: d.nome, p_setor: d.setor, p_pin: d.pin }, true),
+  atualizar: (id, setor, ativo) => supaApi.rpc('trein_gestor_atualizar', { p_id: id, p_setor: setor ?? null, p_ativo: ativo ?? null }, true),
+  redefinirPin: (id, pin) => supaApi.rpc('trein_gestor_redefinir_pin', { p_id: id, p_pin: pin }, true)
 };
 
 /* Modo demonstração: mesmas funções, guardadas no aparelho. */
-const DEMO_KEY = 'academia-drive-demo-v1';
-const DEMO_CODIGO = '1978', DEMO_GESTOR = 'gestor1978';
+const DEMO_KEY = 'academia-drive-demo-v2';
+const DEMO_EMAIL = 'gestor@demo.com', DEMO_SENHA = 'gestor1978', DEMO_PIN = '1234';
 let demoMem = null;
 function demoDb() {
   if (demoMem) return demoMem;
   demoMem = store.get(DEMO_KEY, null);
   if (!demoMem) {
-    // Participantes de exemplo, marcados como tal, para o ranking não começar vazio.
+    // Colaboradores de exemplo, marcados como tal, para o ranking não começar vazio.
     const ex = [['Ana (exemplo)', 'Salão', 13, 11240, 'fritadeira', 11, 8020], ['Bruno (exemplo)', 'Cozinha', 10, 7350, 'fritadeira', 15, 13110], ['Carla (exemplo)', 'Recepção / Caixa', 14, 12480, null], ['Diego (exemplo)', 'Cozinha', 9, 6110, 'fritadeira', 12, 9400]];
     demoMem = { participantes: [], tentativas: [] };
     const agora = Date.now();
     ex.forEach(([nome, setor, a1, p1, c2, a2, p2], i) => {
       const id = uid();
-      demoMem.participantes.push({ id, nome, nome_norm: norm(nome), setor, pin_hash: '-', token: uid(), criado_em: new Date(agora - 864e5 * (6 - i)).toISOString(), exemplo: true });
+      demoMem.participantes.push({ id, nome, nome_norm: norm(nome), setor, pin_hash: 'plain:' + DEMO_PIN, token: uid(), ativo: true, criado_em: new Date(agora - 864e5 * (6 - i)).toISOString(), exemplo: true });
       const resp = (qs, ac) => qs.slice(0, 15).map((q, k) => ({ q: q.id, ok: k < ac }));
       demoMem.tentativas.push({ participante_id: id, curso: 'atendimento', acertos: a1, total: 15, pontos: p1, respostas: resp(shuffle(curso('atendimento').perguntas), a1), criado_em: new Date(agora - 864e5 * (5 - i)).toISOString() });
       if (c2) demoMem.tentativas.push({ participante_id: id, curso: c2, acertos: a2, total: 15, pontos: p2, respostas: resp(shuffle(curso(c2).perguntas), a2), criado_em: new Date(agora - 864e5 * (4 - i)).toISOString() });
@@ -820,47 +882,59 @@ function rankingDe(db, cursoId) {
   }
   const por = new Map();
   for (const t of melhor.values()) {
-    const p = db.participantes.find(x => x.id === t.participante_id); if (!p) continue;
+    const p = db.participantes.find(x => x.id === t.participante_id); if (!p || p.ativo === false) continue;
     const r = por.get(p.id) || { id: p.id, nome: p.nome, setor: p.setor, pontos: 0, acertos: 0, total: 0, cursos: 0, exemplo: !!p.exemplo };
     r.pontos += t.pontos; r.acertos += t.acertos; r.total += t.total; r.cursos++; por.set(p.id, r);
   }
   return [...por.values()].sort((a, b) => b.pontos - a.pontos || a.nome.localeCompare(b.nome));
 }
+const demoExigeGestor = () => { if (!gSess) throw new Error('Entre como gestor.'); };
+const demoAtivo = tk => { const p = demoDb().participantes.find(x => x.token === tk && x.ativo !== false); if (!p) throw new Error('Sessão expirada. Entre novamente.'); return p; };
 const localApi = {
-  async registrar(d) {
-    const db = demoDb();
-    if (d.codigo !== DEMO_CODIGO) throw new Error('Código da equipe incorreto. Peça o código ao seu gestor.');
-    if (norm(d.nome).length < 3) throw new Error('Digite seu nome e sobrenome.');
-    if (!/^\d{4}$/.test(d.pin)) throw new Error('O PIN precisa ter 4 números.');
-    if (db.participantes.some(p => p.nome_norm === norm(d.nome))) throw new Error('Esse nome já está cadastrado. Use a aba Entrar.');
-    const p = { id: uid(), nome: d.nome.trim().replace(/\s+/g, ' '), nome_norm: norm(d.nome), setor: d.setor, pin_hash: await hash(d.pin), token: uid(), criado_em: new Date().toISOString() };
-    db.participantes.push(p); demoSave(); return pub(p);
-  },
   async entrar(d) {
     const p = demoDb().participantes.find(x => x.nome_norm === norm(d.nome));
-    if (!p || p.pin_hash !== await hash(d.pin)) throw new Error('Nome ou PIN incorretos.');
+    if (!p || (p.pin_hash !== 'plain:' + d.pin && p.pin_hash !== await hash(d.pin))) throw new Error('Nome ou PIN incorretos.');
+    if (p.ativo === false) throw new Error('Seu acesso está desativado. Fale com o seu gestor.');
     return pub(p);
   },
   async salvar(tk, t) {
-    const db = demoDb(); const p = db.participantes.find(x => x.token === tk);
-    if (!p) throw new Error('Sessão expirada. Entre novamente.');
-    db.tentativas.push({ participante_id: p.id, ...t, criado_em: new Date().toISOString() }); demoSave(); return { ok: true };
+    const p = demoAtivo(tk);
+    demoDb().tentativas.push({ participante_id: p.id, ...t, criado_em: new Date().toISOString() }); demoSave(); return { ok: true };
   },
   async ranking(c) { return rankingDe(demoDb(), c); },
   async minhas(tk) {
-    const db = demoDb(); const p = db.participantes.find(x => x.token === tk);
-    if (!p) throw new Error('Sessão expirada. Entre novamente.');
-    return db.tentativas.filter(t => t.participante_id === p.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
+    const p = demoAtivo(tk);
+    return demoDb().tentativas.filter(t => t.participante_id === p.id).sort((a, b) => b.criado_em.localeCompare(a.criado_em));
   },
-  async painel(s) {
-    if (s !== DEMO_GESTOR) throw new Error('Senha do gestor incorreta.');
-    const db = demoDb();
-    return { participantes: db.participantes.map(p => ({ id: p.id, nome: p.nome, setor: p.setor, criado_em: p.criado_em, exemplo: !!p.exemplo })), tentativas: db.tentativas };
+  async gestorLogin(email, senha) {
+    if (email.trim().toLowerCase() !== DEMO_EMAIL || senha !== DEMO_SENHA) throw new Error('E-mail ou senha incorretos.');
+    gSess = { email: DEMO_EMAIL }; store.set(GKEY, gSess); return { email: DEMO_EMAIL, nome: 'Gestor (demonstração)' };
   },
-  async redefinirPin(s, id, pin) {
-    if (s !== DEMO_GESTOR) throw new Error('Senha do gestor incorreta.');
+  gestorSessao: () => !!gSess,
+  gestorSair() { gLimpar(); },
+  async gestorEu() { demoExigeGestor(); return { email: DEMO_EMAIL, nome: 'Gestor (demonstração)' }; },
+  async painel() {
+    demoExigeGestor(); const db = demoDb();
+    return { participantes: db.participantes.map(p => ({ id: p.id, nome: p.nome, setor: p.setor, ativo: p.ativo !== false, criado_em: p.criado_em, exemplo: !!p.exemplo })), tentativas: db.tentativas };
+  },
+  async cadastrar(d) {
+    demoExigeGestor(); const db = demoDb();
+    if (norm(d.nome).length < 3) throw new Error('Digite o nome e o sobrenome do colaborador.');
+    if (!/^\d{4}$/.test(d.pin)) throw new Error('O PIN precisa ter 4 números.');
+    if (db.participantes.some(p => p.nome_norm === norm(d.nome))) throw new Error('Já existe um colaborador com esse nome. Acrescente o sobrenome para diferenciar.');
+    const p = { id: uid(), nome: d.nome.trim().replace(/\s+/g, ' '), nome_norm: norm(d.nome), setor: d.setor, pin_hash: await hash(d.pin), token: uid(), ativo: true, criado_em: new Date().toISOString() };
+    db.participantes.push(p); demoSave(); return { id: p.id, nome: p.nome, setor: p.setor };
+  },
+  async atualizar(id, setor, ativo) {
+    demoExigeGestor(); const p = demoDb().participantes.find(x => x.id === id); if (!p) throw new Error('Colaborador não encontrado.');
+    if (setor != null) p.setor = setor;
+    if (ativo != null) { p.ativo = ativo; if (!ativo) p.token = uid(); }
+    demoSave(); return { ok: true };
+  },
+  async redefinirPin(id, pin) {
+    demoExigeGestor();
     if (!/^\d{4}$/.test(pin)) throw new Error('O PIN precisa ter 4 números.');
-    const p = demoDb().participantes.find(x => x.id === id); if (!p) throw new Error('Participante não encontrado.');
+    const p = demoDb().participantes.find(x => x.id === id); if (!p) throw new Error('Colaborador não encontrado.');
     p.pin_hash = await hash(pin); p.token = uid(); demoSave(); return { ok: true };
   }
 };
@@ -893,14 +967,13 @@ function show(v) {
 }
 function renderTop() {
   const who = $('#who');
-  if (S.view === 'gestor') { who.innerHTML = `<span class="chip gold">Área do gestor</span><button class="btn btn-ghost btn-sm" id="btn-sair-gestor">Sair</button>`; return; }
+  if (S.view === 'gestor') { who.innerHTML = `<span class="chip gold">Gestor</span>${S.gestor?.eu ? `<b>${esc(S.gestor.eu.nome || S.gestor.eu.email)}</b><button class="btn btn-ghost btn-sm" id="btn-sair-gestor">Sair</button>` : `<button class="btn btn-ghost btn-sm" id="btn-voltar-gestor">Voltar</button>`}`; return; }
   if (!S.user) { who.innerHTML = ''; return; }
   who.innerHTML = `<span class="chip">${esc(S.user.setor)}</span><b>${esc(S.user.nome)}</b><button class="btn btn-ghost btn-sm" id="btn-sair">Sair</button>`;
 }
 
 /* ---------- login */
-function renderLogin(tab = 'entrar') {
-  const opts = SETORES.map(s => `<option>${esc(s)}</option>`).join('');
+function renderLogin() {
   $('#v-login').innerHTML = `
   <div class="wrap login">
     <div class="login-hero">
@@ -913,51 +986,28 @@ function renderLogin(tab = 'entrar') {
       </div>
     </div>
     <div class="card">
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="tab-entrar" aria-selected="${tab === 'entrar'}">Entrar</button>
-        <button class="tab" role="tab" id="tab-cad" aria-selected="${tab === 'cad'}">Primeiro acesso</button>
-      </div>
-      ${tab === 'entrar' ? `
+      <h2 class="card-title">Entrar</h2>
       <form class="form" id="f-entrar" autocomplete="off">
         <div class="field"><label for="e-nome">Nome e sobrenome</label><input class="input" id="e-nome" required autocomplete="username"></div>
         <div class="field"><label for="e-pin">PIN (4 números)</label><input class="input pin" id="e-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required autocomplete="current-password" type="password"></div>
         <div class="form-err" id="e-err"></div>
         <button class="btn btn-primary" type="submit">Entrar</button>
-      </form>` : `
-      <form class="form" id="f-cad" autocomplete="off">
-        <div class="field"><label for="c-nome">Nome e sobrenome</label><input class="input" id="c-nome" required></div>
-        <div class="field"><label for="c-setor">Setor</label><select class="input" id="c-setor">${opts}</select></div>
-        <div class="row2">
-          <div class="field"><label for="c-pin">Crie um PIN</label><input class="input pin" id="c-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required type="password"></div>
-          <div class="field"><label for="c-pin2">Repita o PIN</label><input class="input pin" id="c-pin2" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required type="password"></div>
-        </div>
-        <div class="field"><label for="c-cod">Código da equipe</label><input class="input" id="c-cod" required inputmode="numeric"></div>
-        <div class="form-err" id="c-err"></div>
-        <button class="btn btn-primary" type="submit">Criar meu acesso</button>
-      </form>`}
+      </form>
+      <p class="hint" style="margin-top:14px;text-align:center">Ainda não tem acesso? Peça ao seu gestor para cadastrar você.</p>
       <div class="login-foot"><button class="btn-link" id="btn-gestor">Área do gestor</button></div>
     </div>
   </div>`;
-  $('#tab-entrar').onclick = () => renderLogin('entrar');
-  $('#tab-cad').onclick = () => renderLogin('cad');
-  $('#btn-gestor').onclick = () => { S.gestor = null; renderGestor(); show('gestor'); };
-  const fe = $('#f-entrar'), fc = $('#f-cad');
-  if (fe) fe.onsubmit = async ev => {
+  $('#btn-gestor').onclick = abrirGestor;
+  const fe = $('#f-entrar');
+  fe.onsubmit = async ev => {
     ev.preventDefault(); const b = fe.querySelector('button[type=submit]'); b.disabled = true; $('#e-err').textContent = '';
     try { login(await api.entrar({ nome: $('#e-nome').value, pin: $('#e-pin').value })); }
     catch (e) { $('#e-err').textContent = e.message; } finally { b.disabled = false; }
   };
-  if (fc) fc.onsubmit = async ev => {
-    ev.preventDefault(); $('#c-err').textContent = '';
-    if ($('#c-pin').value !== $('#c-pin2').value) { $('#c-err').textContent = 'Os dois PINs estão diferentes.'; return; }
-    const b = fc.querySelector('button[type=submit]'); b.disabled = true;
-    try { login(await api.registrar({ nome: $('#c-nome').value, setor: $('#c-setor').value, pin: $('#c-pin').value, codigo: $('#c-cod').value.trim() })); }
-    catch (e) { $('#c-err').textContent = e.message; } finally { b.disabled = false; }
-  };
   const logoBig = $('#v-login .logo-big'); if (logoBig) logoBig.onerror = () => logoBig.remove();
 }
 function login(u) { S.user = u; store.set('academia-drive-sessao', u); goHome(); }
-function logout() { S.user = null; store.del('academia-drive-sessao'); renderLogin('entrar'); show('login'); }
+function logout() { S.user = null; store.del('academia-drive-sessao'); renderLogin(); show('login'); }
 
 /* ---------- home */
 async function goHome() {
@@ -1362,29 +1412,51 @@ function festa(t) {
 }
 
 /* ---------- gestor */
+async function abrirGestor() {
+  S.gestor = null; show('gestor');
+  if (api.gestorSessao()) {
+    $('#v-gestor').innerHTML = `<div class="wrap"><p class="empty" style="padding-top:60px">Carregando o painel…</p></div>`;
+    try { const eu = await api.gestorEu(); const dados = await api.painel(); S.gestor = { eu, dados, setor: '', inativos: false }; }
+    catch (e) { api.gestorSair(); toast(e.message); }
+  }
+  renderGestor(); renderTop();
+}
+function sairDoGestor() { api.gestorSair(); S.gestor = null; if (S.user) goHome(); else { renderLogin(); show('login'); } }
+async function recarregarPainel(msg) {
+  try { S.gestor.dados = await api.painel(); renderGestor(); if (msg) toast(msg); }
+  catch (e) { toast(e.message); if (/gestor|sessão/i.test(e.message)) { api.gestorSair(); S.gestor = null; renderGestor(); renderTop(); } }
+}
 function renderGestor() {
   const el = $('#v-gestor');
   if (!S.gestor) {
     el.innerHTML = `<div class="wrap"><div class="intro">
-      <button class="btn btn-ghost btn-sm" id="g-voltar">← Voltar</button>
       <h1 style="margin-top:22px"><span class="plate lg">Área do gestor</span></h1>
-      <p style="color:var(--muted);margin:14px 0 20px">Acompanhe quem fez cada curso, as notas e as perguntas que a equipe mais erra.</p>
-      <form class="form card" id="f-gestor"><div class="field"><label for="g-senha">Senha do gestor</label><input class="input" id="g-senha" type="password" required autocomplete="current-password"></div>
-      <div class="form-err" id="g-err"></div><button class="btn btn-primary" type="submit">Entrar</button></form>
+      <p style="color:var(--muted);margin:14px 0 20px">Cadastre os colaboradores e acompanhe quem fez cada curso, as notas e as perguntas que a equipe mais erra.</p>
+      <form class="form card" id="f-gestor">
+        <div class="field"><label for="g-email">E-mail</label><input class="input" id="g-email" type="email" required autocomplete="username"></div>
+        <div class="field"><label for="g-senha">Senha</label><input class="input" id="g-senha" type="password" required autocomplete="current-password"></div>
+        <div class="form-err" id="g-err"></div><button class="btn btn-primary" type="submit">Entrar como gestor</button>
+      </form>
     </div></div>`;
-    $('#g-voltar').onclick = () => { if (S.user) goHome(); else { renderLogin(); show('login'); } };
     $('#f-gestor').onsubmit = async ev => {
-      ev.preventDefault(); const s = $('#g-senha').value; $('#g-err').textContent = '';
-      try { const d = await api.painel(s); S.gestor = { senha: s, dados: d, setor: '' }; renderGestor(); }
-      catch (e) { $('#g-err').textContent = e.message; }
+      ev.preventDefault(); $('#g-err').textContent = ''; const b = ev.target.querySelector('button'); b.disabled = true;
+      try {
+        const eu = await api.gestorLogin($('#g-email').value, $('#g-senha').value);
+        const dados = await api.painel();
+        S.gestor = { eu, dados, setor: '', inativos: false }; renderGestor(); renderTop();
+      } catch (e) { $('#g-err').textContent = e.message; if (/restrito/i.test(e.message)) api.gestorSair(); }
+      finally { b.disabled = false; }
     };
     return;
   }
   const { dados } = S.gestor;
-  const ps = dados.participantes, ts = dados.tentativas;
+  const todos = dados.participantes, ts = dados.tentativas;
+  const ps = todos.filter(p => p.ativo !== false);
+  const inativos = todos.length - ps.length;
   const melhor = (pid, cid) => ts.filter(t => t.participante_id === pid && t.curso === cid).reduce((a, b) => !a || b.pontos > a.pontos ? b : a, null);
-  const filtrados = ps.filter(p => !S.gestor.setor || p.setor === S.gestor.setor);
-  const mediaAc = ts.length ? Math.round(ts.reduce((s, t) => s + t.acertos / t.total, 0) / ts.length * 100) : 0;
+  const filtrados = todos.filter(p => (S.gestor.inativos || p.ativo !== false) && (!S.gestor.setor || p.setor === S.gestor.setor));
+  const tsAtivos = ts.filter(t => ps.some(p => p.id === t.participante_id));
+  const mediaAc = tsAtivos.length ? Math.round(tsAtivos.reduce((s, t) => s + t.acertos / t.total, 0) / tsAtivos.length * 100) : 0;
   const kpiCurso = CURSOS.map(c => {
     const fizeram = ps.filter(p => melhor(p.id, c.id)).length;
     const aprov = ps.filter(p => { const m = melhor(p.id, c.id); return m && m.acertos / m.total >= APROVACAO; }).length;
@@ -1404,38 +1476,80 @@ function renderGestor() {
     return `<div><p class="eyebrow" style="margin-bottom:6px">${esc(c.titulo)}</p><div class="rank-list" style="padding-block:4px">${top.length ? top.map(x => `<div class="miss-item"><div class="mq">${esc(x.q.p)}</div>
       <div class="miss-bar"><div class="track"><i style="width:${Math.round(x.taxa * 100)}%"></i></div><span class="num">${Math.round(x.taxa * 100)}% erram (${x.e}/${x.n})</span></div></div>`).join('') : `<p class="empty">Sem erros registrados ainda.</p>`}</div></div>`;
   }).join('');
+  const setorOpts = sel => SETORES.map(s => `<option ${sel === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   $('#v-gestor').innerHTML = `<div class="wrap">
-    <div class="hello"><div><h1>Painel do <span>gestor</span></h1><p>${ps.length} pessoas cadastradas · ${ts.length} avaliações feitas</p></div>
+    <div class="hello"><div><h1>Painel do <span>gestor</span></h1><p>${ps.length} colaboradores ativos${inativos ? ` · ${inativos} desativado${inativos > 1 ? 's' : ''}` : ''} · ${ts.length} avaliações feitas</p></div>
       <div class="score-strip"><button class="btn btn-ghost" id="g-refresh">Atualizar</button><button class="btn btn-primary" id="g-csv">Baixar planilha (CSV)</button></div></div>
+
+    <div class="sec-head"><h2 class="plate md">Cadastrar</h2></div>
+    <form class="card cad-form" id="f-cad" autocomplete="off">
+      <div class="field"><label for="cad-nome">Nome e sobrenome</label><input class="input" id="cad-nome" required></div>
+      <div class="field"><label for="cad-setor">Setor</label><select class="input" id="cad-setor">${setorOpts(S.gestor.ultimoSetor || SETORES[0])}</select></div>
+      <div class="field"><label for="cad-pin">PIN inicial</label><input class="input pin" id="cad-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required placeholder="0000"></div>
+      <button class="btn btn-primary" type="submit">Cadastrar colaborador</button>
+      <p class="form-err cad-msg" id="cad-msg" aria-live="polite"></p>
+    </form>
+
     <div class="sec-head"><h2 class="plate md">Resumo</h2></div>
     <div class="kpis">
-      <div class="kpi"><div class="k">Participantes</div><div class="v num">${ps.length}</div><div class="s">cadastrados na plataforma</div></div>
-      <div class="kpi"><div class="k">Média de acertos</div><div class="v num">${mediaAc}%</div><div class="s">em ${ts.length} avaliações</div></div>
+      <div class="kpi"><div class="k">Colaboradores</div><div class="v num">${ps.length}</div><div class="s">ativos na plataforma</div></div>
+      <div class="kpi"><div class="k">Média de acertos</div><div class="v num">${mediaAc}%</div><div class="s">em ${tsAtivos.length} avaliações</div></div>
       ${kpiCurso}
     </div>
     <div class="sec-head"><h2 class="plate md">Equipe</h2></div>
-    <div class="toolbar"><label for="g-setor" class="hint">Setor</label><select class="input" id="g-setor"><option value="">Todos</option>${SETORES.map(s => `<option ${S.gestor.setor === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
-    <div class="table-scroll"><table class="gt"><thead><tr><th>Nome</th><th>Setor</th>${CURSOS.map(c => `<th>${esc(c.curto || c.titulo)}</th>`).join('')}<th>Tentativas</th><th>Cadastro</th><th>PIN</th></tr></thead><tbody>
-      ${filtrados.length ? filtrados.map(p => `<tr><td class="nm">${esc(p.nome)}</td><td>${esc(p.setor)}</td>${CURSOS.map(c => `<td>${cel(p, c)}</td>`).join('')}
+    <div class="toolbar"><label for="g-setor" class="hint">Setor</label><select class="input" id="g-setor"><option value="">Todos</option>${SETORES.map(s => `<option ${S.gestor.setor === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      ${inativos ? `<label class="hint chk"><input type="checkbox" id="g-inativos" ${S.gestor.inativos ? 'checked' : ''}> Mostrar desativados</label>` : ''}</div>
+    <div class="table-scroll"><table class="gt"><thead><tr><th>Nome</th><th>Setor</th>${CURSOS.map(c => `<th>${esc(c.curto || c.titulo)}</th>`).join('')}<th>Tentativas</th><th>Cadastro</th><th>Novo PIN</th><th>Acesso</th></tr></thead><tbody>
+      ${filtrados.length ? filtrados.map(p => `<tr class="${p.ativo === false ? 'off' : ''}"><td class="nm">${esc(p.nome)}${p.ativo === false ? ' <span class="chip">Desativado</span>' : ''}</td>
+        <td><select class="input sel-setor" data-pid="${esc(p.id)}" aria-label="Setor de ${esc(p.nome)}">${setorOpts(p.setor)}${SETORES.includes(p.setor) ? '' : `<option selected>${esc(p.setor)}</option>`}</select></td>
+        ${CURSOS.map(c => `<td>${cel(p, c)}</td>`).join('')}
         <td class="num">${ts.filter(t => t.participante_id === p.id).length}</td><td class="num">${dataBR(p.criado_em)}</td>
-        <td><form class="pinform" data-pid="${esc(p.id)}"><input class="input pin" id="pin-${esc(p.id)}" aria-label="Novo PIN de ${esc(p.nome)}" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="0000"><button class="btn btn-ghost btn-sm">Redefinir</button></form></td></tr>`).join('')
-      : `<tr><td colspan="${5 + CURSOS.length}" class="empty">Ninguém cadastrado neste setor.</td></tr>`}
+        <td><form class="pinform" data-pid="${esc(p.id)}"><input class="input pin" id="pin-${esc(p.id)}" aria-label="Novo PIN de ${esc(p.nome)}" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="0000"><button class="btn btn-ghost btn-sm">Salvar</button></form></td>
+        <td><button class="btn btn-ghost btn-sm btn-ativo" data-pid="${esc(p.id)}" data-ativo="${p.ativo === false ? '1' : '0'}">${p.ativo === false ? 'Reativar' : 'Desativar'}</button></td></tr>`).join('')
+      : `<tr><td colspan="${6 + CURSOS.length}" class="empty">${todos.length ? 'Ninguém neste filtro.' : 'Nenhum colaborador cadastrado ainda. Use o formulário acima.'}</td></tr>`}
     </tbody></table></div>
     <div class="sec-head"><h2 class="plate md">Mais erradas</h2></div>
     <div class="miss">${missHtml}</div>
   </div>`;
   $('#g-setor').onchange = e => { S.gestor.setor = e.target.value; renderGestor(); };
-  $('#g-refresh').onclick = async () => { try { S.gestor.dados = await api.painel(S.gestor.senha); renderGestor(); toast('Painel atualizado'); } catch (e) { toast(e.message); } };
-  $('#g-csv').onclick = () => baixarCsv(ps, ts, melhor);
+  const ci = $('#g-inativos'); if (ci) ci.onchange = e => { S.gestor.inativos = e.target.checked; renderGestor(); };
+  $('#g-refresh').onclick = () => recarregarPainel('Painel atualizado');
+  $('#g-csv').onclick = () => baixarCsv(todos, ts, melhor);
+  $('#f-cad').onsubmit = async ev => {
+    ev.preventDefault(); const b = ev.target.querySelector('button'); b.disabled = true;
+    const d = { nome: $('#cad-nome').value, setor: $('#cad-setor').value, pin: $('#cad-pin').value };
+    try {
+      const r = await api.cadastrar(d);
+      S.gestor.ultimoSetor = d.setor;
+      await recarregarPainel();
+      const m = $('#cad-msg'); m.classList.add('ok');
+      m.textContent = `${r.nome} cadastrado em ${r.setor}. Para entrar: nome “${r.nome}” e PIN ${d.pin}.`;
+      $('#cad-nome').focus();
+    } catch (e) { const m = $('#cad-msg'); m.classList.remove('ok'); m.textContent = e.message; }
+    finally { b.disabled = false; }
+  };
+  $('#v-gestor').querySelectorAll('.sel-setor').forEach(sel => sel.onchange = async () => {
+    try { await api.atualizar(sel.dataset.pid, sel.value, null); await recarregarPainel('Setor atualizado'); } catch (e) { toast(e.message); }
+  });
   $('#v-gestor').querySelectorAll('.pinform').forEach(f => f.onsubmit = async ev => {
     ev.preventDefault(); const pin = f.querySelector('input').value;
-    try { await api.redefinirPin(S.gestor.senha, f.dataset.pid, pin); f.querySelector('input').value = ''; toast('PIN redefinido. Avise o colaborador.'); }
+    try { await api.redefinirPin(f.dataset.pid, pin); f.querySelector('input').value = ''; toast('PIN alterado. Avise o colaborador.'); }
+    catch (e) { toast(e.message); }
+  });
+  $('#v-gestor').querySelectorAll('.btn-ativo').forEach(b => b.onclick = async () => {
+    const reativar = b.dataset.ativo === '1';
+    if (!reativar && !b.dataset.confirmar) {   // segundo clique confirma
+      b.dataset.confirmar = '1'; b.textContent = 'Confirmar?'; b.classList.add('btn-red');
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.confirmar; b.textContent = 'Desativar'; b.classList.remove('btn-red'); } }, 4000);
+      return;
+    }
+    try { await api.atualizar(b.dataset.pid, null, reativar); await recarregarPainel(reativar ? 'Acesso reativado' : 'Acesso desativado'); }
     catch (e) { toast(e.message); }
   });
 }
 function baixarCsv(ps, ts, melhor) {
-  const linhas = [['Nome', 'Setor', 'Cadastro', ...CURSOS.flatMap(c => [c.titulo + ' - melhor %', c.titulo + ' - pontos', c.titulo + ' - status']), 'Tentativas']];
-  ps.forEach(p => linhas.push([p.nome, p.setor, dataBR(p.criado_em), ...CURSOS.flatMap(c => { const m = melhor(p.id, c.id); return m ? [pct(m.acertos, m.total), m.pontos, m.acertos / m.total >= APROVACAO ? 'Aprovado' : 'Reprovado'] : ['', '', 'Não fez']; }), ts.filter(t => t.participante_id === p.id).length]));
+  const linhas = [['Nome', 'Setor', 'Acesso', 'Cadastro', ...CURSOS.flatMap(c => [c.titulo + ' - melhor %', c.titulo + ' - pontos', c.titulo + ' - status']), 'Tentativas']];
+  ps.forEach(p => linhas.push([p.nome, p.setor, p.ativo === false ? 'Desativado' : 'Ativo', dataBR(p.criado_em), ...CURSOS.flatMap(c => { const m = melhor(p.id, c.id); return m ? [pct(m.acertos, m.total), m.pontos, m.acertos / m.total >= APROVACAO ? 'Aprovado' : 'Reprovado'] : ['', '', 'Não fez']; }), ts.filter(t => t.participante_id === p.id).length]));
   const csv = '﻿' + linhas.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
   if (window.claude?.use) {
     window.claude.use('downloads').then(dl => {
@@ -1451,7 +1565,8 @@ function baixarCsv(ps, ts, melhor) {
 /* ------------------------------------------------------------- início */
 document.addEventListener('click', e => {
   if (e.target.closest('#btn-sair')) logout();
-  if (e.target.closest('#btn-sair-gestor')) { S.gestor = null; if (S.user) goHome(); else { renderLogin(); show('login'); } }
+  if (e.target.closest('#btn-sair-gestor')) sairDoGestor();
+  if (e.target.closest('#btn-voltar-gestor')) { S.gestor = null; if (S.user) goHome(); else { renderLogin(); show('login'); } }
   if (e.target.closest('#brand')) { if (S.user && S.view !== 'quiz') goHome(); }
 });
 (function boot() {
